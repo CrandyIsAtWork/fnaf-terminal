@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FNAF 6 Task System</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="monitor-screen">
+        
+        <button id="power-button">⏻</button>
+
+        <div id="loading-container" class="d-none">
+            <div id="boot-sequence">
+                <p>FAZBEAR ENTERTAINMENT [v1.06] BIOS...</p>
+                <p>System Memory Check: 64KB OK</p>
+                <p>Initializing Task Manager...</p>
+                <p>Checking Pizzeria Status... ONLINE</p>
+                <p>Loading Animatronic Protocols... DONE</p>
+                <p>BOOT SEQUENCE COMPLETE.</p>
+            </div>
+        </div>
+
+        <div class="task-terminal d-none">
+            <div class="terminal-header">-- FAZBEAR ENTERTAINMENT --<br>-- DAILY TASKS [v1.06] --</div>
+            <div id="task-container">
+                <div class="task-item" id="task-1">
+                    <span>Order Supplies</span>
+                    <button class="task-button">BEGIN</button>
+                </div>
+                <div class="task-item" id="task-2">
+                    <span>Print Flyers</span>
+                    <button class="task-button">BEGIN</button>
+                </div>
+                <div class="task-item" id="task-4">
+                    <span>Accept Sponsorships</span>
+                    <button class="task-button">BEGIN</button>
+                </div>
+                <div class="task-item" id="task-3">
+                    <span>Calibrate Animatronics</span>
+                    <button class="task-button">BEGIN</button>
+                </div>
+            </div>
+            <div id="progress-container" class="hidden">
+                <div id="progress-bar"></div>
+            </div>
+        </div>
+
+        <div id="ad-popup-overlay">
+            <div id="ad-popup-content">
+                <div id="ad-close-button">X</div>
+                <img id="ad-image" src="" alt="Advertisement">
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
