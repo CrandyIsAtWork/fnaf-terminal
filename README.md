@@ -33,14 +33,6 @@ This simulation was built as a fun, interactive web project to replicate a core 
 
 ---
 
-## ## Live Demo
-
-You can try the live version of the terminal here:
-
-**(Insert your Netlify or GitHub Pages URL here)**
-
----
-
 ## ## How To Use
 
 1.  Open the live demo link above.
