@@ -57,24 +57,19 @@ body {
     pointer-events: none;
 }
 
-/* --- Red Power Button --- */
+/* --- SVG Power Button --- */
 #power-button {
     position: absolute;
-    bottom: 15px;
-    right: 15px;
+    bottom: -10px;  /* below the border */
+    right: -10px;   /* outside the border slightly */
     width: 50px;
     height: 50px;
     background-color: #a00;
-    color: #fdd;
     border: 2px solid #f00;
-    border-radius: 50%;
-    font-size: 2em;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    line-height: 1;
-    padding-bottom: 5px;
     box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
     transition: background-color 0.2s, box-shadow 0.2s;
     z-index: 10;
@@ -83,6 +78,12 @@ body {
 #power-button:hover {
     background-color: #d00;
     box-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+}
+
+#power-button svg {
+    width: 24px;
+    height: 24px;
+    fill: #fdd;
 }
 
 /* --- Startup Animation Styles --- */
