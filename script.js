@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const adCloseButton = document.getElementById('ad-close-button');
 
     const adImageUrls = [
-        // Base64 placeholders for ads
         'Images/AD1.jpg',
     ];
 
