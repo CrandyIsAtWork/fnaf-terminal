@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const adImageUrls = [
         // Base64 placeholders for ads
-        'data:image/png;base64,...',
+        'Images/AD1.jpg',
         'data:image/png;base64,...'
     ];
 
