@@ -243,10 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         playTaskSound(taskName);
-        
-        // CHANGED: The old ad logic is replaced with a call to our new function
-        const adPopupDelay = Math.floor(Math.random() * (60000 - 5000 + 1)) + 5000;
-        setTimeout(triggerAdPopup, adPopupDelay); // The task can still trigger its own ad randomly
 
         updateProgress();
     }
