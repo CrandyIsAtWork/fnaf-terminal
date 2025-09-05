@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const adCloseButton = document.getElementById('ad-close-button');
 
     const adImageUrls = [
-        'Images/AD1.jpg',
+        'Images/AD2.jpg',
+        'Images/AD1.jpg'
     ];
 
     // --- Sound Setup ---
