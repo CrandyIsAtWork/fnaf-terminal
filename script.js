@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // NEW: Connect to the WebSocket server
-    const socket = io('http://localhost:3000');
+    const socket = io('https://8b503b84-132c-4149-bdb3-8bef57ec4fd8-00-2ga0ewjtdd2yk.worf.replit.dev');
 
     // --- State Management Variables ---
     let hasBooted = false;
