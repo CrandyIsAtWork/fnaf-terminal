@@ -46,40 +46,24 @@ document.addEventListener('DOMContentLoaded', () => {
     sounds.ad.loop = true;
 
     // --- Listen for server events ---
-    socket.on('connect', () => {
-        console.log('Connected! Requesting game room...');
-        socket.emit('create-game');
-    });
-
-    socket.on('game-created', (data) => {
-        roomCodeText.textContent = `CODE: ${data.roomCode}`;
-    });
-
-    socket.on('player-joined', (data) => {
-        console.log(`Animatronic joined. Total: ${data.playerCount}`);
-    });
-
-    socket.on('trigger-event', (data) => {
-        if (data.type === 'ad') {
-            triggerAdPopup();
-        }
-    });
+    socket.on('connect', () => { socket.emit('create-game'); });
+    socket.on('game-created', (data) => { roomCodeText.textContent = `CODE: ${data.roomCode}`; });
+    socket.on('player-joined', (data) => { console.log(`Animatronic joined. Total: ${data.playerCount}`); });
+    socket.on('trigger-event', (data) => { if (data.type === 'ad') { triggerAdPopup(); } });
 
     socket.on('sabotage-successful', () => {
-        if (isPowerOn && currentTaskState.progress > 0 && currentTaskState.progress < 100) {
+        if (isPowerOn && currentTaskState.startTime && !currentTaskState.isPaused) {
             console.log('Task sabotaged!');
-            currentTaskState.progress -= 30; // Knock back progress by 30%
-            if (currentTaskState.progress < 0) currentTaskState.progress = 0;
-            progressBar.style.width = `${currentTaskState.progress}%`;
+            // Add 5 seconds to the total duration to slow down the task
+            currentTaskState.duration += 5000;
         }
     });
 
     socket.on('glitch-successful', () => {
         if (!isPowerOn || openGlitches > 0) return;
-
-        if (currentTaskState.progress > 0 && currentTaskState.progress < 100) {
-            currentTaskState.isPaused = true;
-            stopTaskSound(currentTaskState.taskName);
+        
+        if (currentTaskState.startTime && !currentTaskState.isPaused) {
+            pauseTask();
         }
 
         const numErrors = Math.floor(Math.random() * 3) + 4; // 4 to 6 errors
@@ -93,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const left = Math.random() * (monitorScreen.clientWidth - 270);
             newError.style.top = `${top}px`;
             newError.style.left = `${left}px`;
-
+            
             const errorCode = `0x${Math.random().toString(16).substr(2, 8).toUpperCase()}`;
             newError.querySelector('.error-code').textContent = `ERROR: ${errorCode}`;
 
@@ -101,9 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 newError.remove();
                 openGlitches--;
                 if (openGlitches === 0 && currentTaskState.isPaused) {
-                    currentTaskState.isPaused = false;
-                    updateProgress();
-                    playTaskSound(currentTaskState.taskName);
+                    resumeTask();
                 }
             });
             monitorScreen.appendChild(newError);
@@ -129,11 +111,10 @@ document.addEventListener('DOMContentLoaded', () => {
         messageLog.appendChild(messageItem);
         messageLog.scrollTop = messageLog.scrollHeight;
     });
-
+    
     socket.on('trigger-sound', (data) => {
-        const soundName = data.soundName;
-        if (isPowerOn && sounds[soundName]) {
-            sounds[soundName].play();
+        if (isPowerOn && sounds[data.soundName]) {
+            sounds[data.soundName].play();
         }
     });
 
@@ -144,9 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function triggerAdPopup() {
         if (isPowerOn) {
-            if (currentTaskState.progress > 0 && currentTaskState.progress < 100) {
-                currentTaskState.isPaused = true;
-                stopTaskSound(currentTaskState.taskName);
+            if (currentTaskState.startTime && !currentTaskState.isPaused) {
+                pauseTask();
             }
             const randomAdUrl = adImageUrls[Math.floor(Math.random() * adImageUrls.length)];
             adImage.src = randomAdUrl;
@@ -169,6 +149,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1000);
         }
     }
+    
+    adCloseButton.addEventListener('click', () => {
+        adPopup.style.display = 'none';
+        sounds.ad.pause();
+        if (currentTaskState.isPaused) {
+            resumeTask();
+        }
+    });
 
     powerButton.addEventListener('click', () => {
         sounds.click.play();
@@ -179,33 +167,87 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    adCloseButton.addEventListener('click', () => {
-        adPopup.style.display = 'none';
-        sounds.ad.pause();
-        const activeButton = currentTaskState.button;
-        if (activeButton && currentTaskState.progress < 100) {
-            activeButton.textContent = '...';
-        }
-        currentTaskState.isPaused = false;
-        updateProgress();
-        playTaskSound(currentTaskState.taskName);
-    });
-
     taskButtons.forEach(button => {
         button.addEventListener('click', () => {
             if (button.parentElement.classList.contains('completed')) return;
             const parentTaskId = button.parentElement.id;
-            let taskName, taskDuration;
+            let taskName;
             switch (parentTaskId) {
-                case 'task-1': taskName = 'order'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break;
-                case 'task-2': taskName = 'printing'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break;
-                case 'task-4': taskName = 'printing'; taskDuration = 150000; break; // Clean the Oven
-                case 'task-3': taskName = 'calibrate'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break;
+                case 'task-1': taskName = 'order'; break;
+                case 'task-2': taskName = 'printing'; break;
+                case 'task-4': taskName = 'printing'; break;
+                case 'task-3': taskName = 'calibrate'; break;
             }
-            startTask(button, taskDuration, taskName);
+            startTask(button, 20000, taskName);
         });
     });
 
+    function startTask(clickedButton, duration, taskName) {
+        taskButtons.forEach(btn => btn.disabled = true);
+        clickedButton.textContent = '...';
+        progressContainer.classList.remove('hidden');
+        progressBar.style.width = '0%';
+        currentTaskState = {
+            startTime: Date.now(),
+            duration: duration,
+            isPaused: false,
+            button: clickedButton,
+            taskName: taskName,
+            timePaused: 0,
+            pauseStart: 0
+        };
+        playTaskSound(taskName);
+        updateProgress();
+    }
+
+    function updateProgress() {
+        if (currentTaskState.isPaused || !isPowerOn) return;
+
+        const timeElapsed = Date.now() - currentTaskState.startTime - currentTaskState.timePaused;
+        let progress = (timeElapsed / currentTaskState.duration) * 100;
+
+        if (progress >= 100) {
+            progressBar.style.width = '100%';
+            finishTask(currentTaskState.button);
+        } else {
+            progressBar.style.width = `${progress}%`;
+            const lagTime = 50 + Math.random() * 200;
+            progressTimeoutId = setTimeout(updateProgress, lagTime);
+        }
+    }
+    
+    function pauseTask() {
+        if (currentTaskState.startTime && !currentTaskState.isPaused) {
+            currentTaskState.isPaused = true;
+            currentTaskState.pauseStart = Date.now();
+            stopTaskSound(currentTaskState.taskName);
+            clearTimeout(progressTimeoutId);
+        }
+    }
+
+    function resumeTask() {
+        if (currentTaskState.startTime && currentTaskState.isPaused) {
+            currentTaskState.timePaused += Date.now() - currentTaskState.pauseStart;
+            currentTaskState.isPaused = false;
+            playTaskSound(currentTaskState.taskName);
+            updateProgress();
+        }
+    }
+
+    function finishTask(clickedButton) {
+        clearTimeout(progressTimeoutId);
+        stopTaskSound(currentTaskState.taskName);
+        currentTaskState = {}; // Clear the current task
+        setTimeout(() => {
+            progressContainer.classList.add('hidden');
+            progressBar.style.width = '0%';
+            const parentTask = clickedButton.parentElement;
+            parentTask.classList.add('completed');
+            clickedButton.textContent = 'DONE';
+            reenableButtons();
+        }, 300);
+    }
+    
     function startBootSequence() {
         hasBooted = true;
         isPowerOn = true;
@@ -231,76 +273,18 @@ document.addEventListener('DOMContentLoaded', () => {
         isPowerOn = !isPowerOn;
         if (isPowerOn) {
             taskTerminal.classList.remove('d-none');
-            sounds.computerLoop.currentTime = 0;
             sounds.computerLoop.play();
-            const taskWasPaused = currentTaskState.isPaused && currentTaskState.progress > 0 && currentTaskState.progress < 100;
-            if (taskWasPaused) {
-                const activeButton = currentTaskState.button;
-                activeButton.textContent = 'WAIT 5S';
-                setTimeout(() => {
-                    if (isPowerOn) {
-                        activeButton.textContent = '...';
-                        currentTaskState.isPaused = false;
-                        updateProgress();
-                        playTaskSound(currentTaskState.taskName);
-                    }
-                }, 5000);
+            if (currentTaskState.isPaused) {
+                resumeTask();
             }
         } else {
-            clearTimeout(progressTimeoutId);
             taskTerminal.classList.add('d-none');
-            adPopup.style.display = 'none';
             sounds.computerLoop.pause();
-            sounds.powerDown.currentTime = 0;
             sounds.powerDown.play();
-            if (currentTaskState.progress > 0 && currentTaskState.progress < 100) {
-                currentTaskState.isPaused = true;
-                stopTaskSound(currentTaskState.taskName);
+            if (currentTaskState.startTime) {
+                pauseTask();
             }
-            sounds.ad.pause();
         }
-    }
-
-    function startTask(clickedButton, duration, taskName) {
-        taskButtons.forEach(btn => btn.disabled = true);
-        clickedButton.textContent = '...';
-        progressContainer.classList.remove('hidden');
-        progressBar.style.width = '0%';
-        currentTaskState = {
-            progress: 0,
-            increment: 100 / (duration / 50),
-            isPaused: false,
-            button: clickedButton,
-            taskName: taskName
-        };
-        playTaskSound(taskName);
-        updateProgress();
-    }
-
-    function updateProgress() {
-        if (currentTaskState.isPaused || !isPowerOn) return;
-        currentTaskState.progress += currentTaskState.increment * (0.8 + Math.random() * 0.7);
-        if (currentTaskState.progress > 100) currentTaskState.progress = 100;
-        progressBar.style.width = `${currentTaskState.progress}%`;
-        if (currentTaskState.progress < 100) {
-            const lagTime = 20 + Math.random() * 250;
-            progressTimeoutId = setTimeout(updateProgress, lagTime);
-        } else {
-            finishTask(currentTaskState.button);
-        }
-    }
-
-    function finishTask(clickedButton) {
-        clearTimeout(progressTimeoutId);
-        stopTaskSound(currentTaskState.taskName);
-        setTimeout(() => {
-            progressContainer.classList.add('hidden');
-            progressBar.style.width = '0%';
-            const parentTask = clickedButton.parentElement;
-            parentTask.classList.add('completed');
-            clickedButton.textContent = 'DONE';
-            reenableButtons();
-        }, 300);
     }
 
     function reenableButtons() {
@@ -313,14 +297,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playTaskSound(taskName) {
-        if (!sounds[taskName]) return;
-        sounds[taskName].currentTime = 0;
-        sounds[taskName].loop = true;
-        sounds[taskName].play();
+        if (sounds[taskName]) {
+            sounds[taskName].currentTime = 0;
+            sounds[taskName].loop = true;
+            sounds[taskName].play();
+        }
     }
 
     function stopTaskSound(taskName) {
-        if (!sounds[taskName]) return;
-        sounds[taskName].pause();
+        if (sounds[taskName]) {
+            sounds[taskName].pause();
+        }
     }
 });
