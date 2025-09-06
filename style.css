@@ -1,22 +1,22 @@
-/* Styles for the new room code container */
+/* Styles for the room code container */
 #room-code-container {
-    position: fixed; /* Stays in place */
+    position: fixed;
     top: 20px;
     right: 20px;
-    z-index: 1000; /* On top of everything */
+    z-index: 1000;
     background-color: #1a1a1a;
     border: 2px solid #00ff00;
     padding: 5px 10px;
     display: flex;
     align-items: center;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease; /* Use transform for sliding */
 }
 
 #room-code-text {
     color: #00ff00;
     font-size: 1.5em;
     text-shadow: 1px 1px #000;
-    margin-right: 15px;
+    margin-left: 15px; /* Changed from margin-right */
 }
 
 #room-code-toggle {
@@ -29,9 +29,9 @@
     transition: transform 0.3s ease;
 }
 
-/* This class will be added by JavaScript to hide the code */
+/* This class now slides the container off-screen */
 #room-code-container.collapsed {
-    transform: translateX(calc(100% - 45px)); /* Hides most of the box */
+    transform: translateX(calc(100% - 45px));
 }
 
 #room-code-container.collapsed #room-code-toggle {
