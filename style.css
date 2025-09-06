@@ -361,3 +361,42 @@ body {
 #task-3 .task-button:hover:not(:disabled) { 
     background-color: #882222; 
 }
+/* --- NEW: System Glitch Error Pop-up Styles --- */
+.error-popup {
+    position: absolute; /* We will set top/left with JS */
+    width: 250px;
+    background-color: #c0c0c0; /* Old-school grey */
+    border: 2px solid #000;
+    box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
+    font-family: 'VT323', monospace;
+    z-index: 200;
+}
+.error-header {
+    background-color: #000080; /* Dark blue title bar */
+    color: white;
+    padding: 3px 5px;
+    font-size: 1.1em;
+    text-shadow: none;
+}
+.error-body {
+    padding: 15px;
+    text-align: center;
+}
+.error-body p {
+    color: #000;
+    text-shadow: none;
+    margin: 0 0 15px 0;
+}
+.error-ok-btn {
+    background-color: #c0c0c0;
+    border: 2px solid #000;
+    box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+    padding: 3px 20px;
+    color: #000;
+    text-shadow: none;
+    cursor: pointer;
+}
+.error-ok-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+}
