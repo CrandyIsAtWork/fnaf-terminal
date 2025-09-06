@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
         printing: new Audio('sounds/printing.mp3'),
         order: new Audio('sounds/orderitem3.mp3'),
         calibrate: new Audio('sounds/calibrating.mp3'),
-        // UPDATED: Your four new sounds
         laugh: new Audio('sounds/fnaf-freddys-laugh.mp3'),
         beatbox: new Audio('sounds/freddy-beatbox-pas-en-entier-snif.mp3'),
         glitch: new Audio('sounds/golden-freddy-glitch-sound.mp3'),
@@ -110,6 +109,21 @@ document.addEventListener('DOMContentLoaded', () => {
             adPopup.style.display = 'flex';
             sounds.ad.currentTime = 0;
             sounds.ad.play();
+
+            // --- NEW: 5-SECOND DELAY LOGIC ---
+            adCloseButton.disabled = true;
+            let countdown = 5;
+            adCloseButton.textContent = countdown;
+
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                adCloseButton.textContent = countdown;
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    adCloseButton.disabled = false;
+                    adCloseButton.textContent = 'X';
+                }
+            }, 1000);
         }
     }
 
