@@ -1,8 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // This is your specific server URL.
     const socket = io('https://8b503b84-132c-4149-bdb3-8bef57ec4fd8-00-2ga0ewjtdd2yk.worf.replit.dev');
 
-    // Tell the server to create a game as soon as we connect
     socket.on('connect', () => {
         console.log('Connected to server! Requesting a new game room...');
         socket.emit('create-game');
@@ -19,18 +17,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const adPopup = document.getElementById('ad-popup-overlay');
     const adImage = document.getElementById('ad-image');
     const adCloseButton = document.getElementById('ad-close-button');
-    
-    // NEW selectors for the updated room code display
     const roomCodeContainer = document.getElementById('room-code-container');
     const roomCodeText = document.getElementById('room-code-text');
     const roomCodeToggle = document.getElementById('room-code-toggle');
+    // NEW selector for the message display
+    const messageDisplay = document.getElementById('message-display');
+    let messageTimeout;
 
     // --- State Management Variables ---
     let hasBooted = false;
     let isPowerOn = false;
     let currentTaskState = {};
     let progressTimeoutId;
-
     const adImageUrls = ['Images/AD2.jpg', 'Images/AD1.jpg'];
 
     // --- Sound Setup ---
@@ -47,31 +45,52 @@ document.addEventListener('DOMContentLoaded', () => {
     sounds.computerLoop.loop = true;
     sounds.ad.loop = true;
 
-    // --- NEW: Listen for server events ---
+    // --- Listen for server events ---
     socket.on('game-created', (data) => {
         console.log(`Game created with code: ${data.roomCode}`);
-        roomCodeText.textContent = `CODE: ${data.roomCode}`; // Use the new text element
+        roomCodeText.textContent = `CODE: ${data.roomCode}`;
     });
 
     socket.on('player-joined', (data) => {
         console.log(`An animatronic has joined! Total animatronics: ${data.playerCount}`);
     });
 
+    // UPDATED: No longer checks for 'popup'
     socket.on('trigger-event', (data) => {
         console.log('Received event from animatronic:', data.type);
         if (data.type === 'ad') {
             triggerAdPopup();
-        } else if (data.type === 'popup') {
-            triggerJumpscare();
         }
     });
-    
-    // --- NEW: Logic for the hide/show button ---
+
+    // NEW: Listen for messages and display them with a typing effect
+    socket.on('receive-message', (data) => {
+        if (!isPowerOn) return; // Don't show messages if computer is off
+        if (messageTimeout) clearTimeout(messageTimeout);
+
+        const message = data.message;
+        messageDisplay.textContent = '';
+        messageDisplay.classList.remove('hidden');
+
+        let i = 0;
+        const typingInterval = setInterval(() => {
+            if (i < message.length) {
+                messageDisplay.textContent += message.charAt(i);
+                i++;
+            } else {
+                clearInterval(typingInterval);
+                // Hide the message after 5 seconds
+                messageTimeout = setTimeout(() => {
+                    messageDisplay.classList.add('hidden');
+                }, 5000);
+            }
+        }, 100); // 100ms delay between characters
+    });
+
+    // --- UI Logic ---
     roomCodeToggle.addEventListener('click', () => {
         roomCodeContainer.classList.toggle('collapsed');
     });
-
-    // --- YOUR ORIGINAL GAME LOGIC FUNCTIONS ---
 
     function triggerAdPopup() {
         if (isPowerOn) {
@@ -84,16 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
             adPopup.style.display = 'flex';
             sounds.ad.currentTime = 0;
             sounds.ad.play();
-        }
-    }
-
-    function triggerJumpscare() {
-        if (isPowerOn) {
-            const monitor = document.querySelector('.monitor-screen');
-            monitor.style.backgroundColor = '#ff0000';
-            setTimeout(() => {
-                monitor.style.backgroundColor = 'var(--pixel-black)';
-            }, 150);
         }
     }
 
@@ -124,11 +133,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const parentTaskId = button.parentElement.id;
             let taskName, taskDuration;
             switch (parentTaskId) {
-                case 'task-1': taskName = 'calibrate'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break;
+                case 'task-1': taskName = 'order'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break;
                 case 'task-2': taskName = 'printing'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break;
-                // Note: You referenced task-4 and task-3, I kept your original logic
-                case 'task-4': taskName = 'order'; taskDuration = 150000; break; // Assuming 'Accept Sponsorships' is the order task
-                case 'task-3': taskName = 'calibrate'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break; // Assuming 'Calibrate' is calibrate
+                case 'task-4': taskName = 'order'; taskDuration = 150000; break; 
+                case 'task-3': taskName = 'calibrate'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break;
             }
             startTask(button, taskDuration, taskName);
         });
