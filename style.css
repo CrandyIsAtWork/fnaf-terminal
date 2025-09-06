@@ -37,7 +37,6 @@
 #room-code-container.collapsed #room-code-toggle {
     transform: rotate(180deg); /* Flips the arrow */
 }
-}
 /* CSS styling for the terminal interface */
 :root {
     --pixel-green: #00ff00;
