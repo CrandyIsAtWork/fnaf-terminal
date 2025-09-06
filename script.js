@@ -20,8 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const roomCodeContainer = document.getElementById('room-code-container');
     const roomCodeText = document.getElementById('room-code-text');
     const roomCodeToggle = document.getElementById('room-code-toggle');
-    const messageDisplay = document.getElementById('message-display');
-    let messageTimeout;
+    const messageLog = document.getElementById('message-log');
 
     // --- State Management Variables ---
     let hasBooted = false;
@@ -67,22 +66,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     socket.on('receive-message', (data) => {
         if (!isPowerOn) return;
-        if (messageTimeout) clearTimeout(messageTimeout);
-        const message = data.message;
-        messageDisplay.textContent = '';
-        messageDisplay.classList.remove('hidden');
-        let i = 0;
-        const typingInterval = setInterval(() => {
-            if (i < message.length) {
-                messageDisplay.textContent += message.charAt(i);
-                i++;
-            } else {
-                clearInterval(typingInterval);
-                messageTimeout = setTimeout(() => {
-                    messageDisplay.classList.add('hidden');
-                }, 5000);
-            }
-        }, 100);
+
+        const { message, sender } = data; // sender = { name, color, avatar }
+        
+        messageLog.classList.remove('hidden');
+
+        // Create the new list item and its contents
+        const messageItem = document.createElement('li');
+        const avatarImg = document.createElement('img');
+        const textContainer = document.createElement('div');
+        const senderName = document.createElement('strong');
+
+        // Set up the avatar image
+        avatarImg.classList.add('message-avatar');
+        avatarImg.src = `https://crandyisatwork.github.io/fnaf-terminal/${sender.avatar}`;
+
+        // Set up the text content
+        senderName.textContent = `${sender.name}: `;
+        senderName.style.color = sender.color;
+        textContainer.appendChild(senderName);
+        textContainer.appendChild(document.createTextNode(message));
+        
+        // Add the avatar and text to the list item
+        messageItem.appendChild(avatarImg);
+        messageItem.appendChild(textContainer);
+
+        // Add the new message to the log
+        messageLog.appendChild(messageItem);
+
+        // If the log has more than 5 messages, remove the oldest one
+        if (messageLog.children.length > 5) {
+            messageLog.removeChild(messageLog.firstChild);
+        }
+
+        // Automatically scroll to the bottom
+        messageLog.scrollTop = messageLog.scrollHeight;
     });
     
     socket.on('trigger-sound', (data) => {
@@ -110,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
             sounds.ad.currentTime = 0;
             sounds.ad.play();
 
-            // --- NEW: 5-SECOND DELAY LOGIC ---
             adCloseButton.disabled = true;
             let countdown = 5;
             adCloseButton.textContent = countdown;
@@ -156,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
             switch (parentTaskId) {
                 case 'task-1': taskName = 'order'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break;
                 case 'task-2': taskName = 'printing'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break;
-                case 'task-4': taskName = 'order'; taskDuration = 150000; break; 
+                case 'task-4': taskName = 'printing'; taskDuration = 150000; break; // Clean the Oven
                 case 'task-3': taskName = 'calibrate'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break;
             }
             startTask(button, taskDuration, taskName);
@@ -276,6 +293,8 @@ document.addEventListener('DOMContentLoaded', () => {
         sounds[taskName].loop = true;
         sounds[taskName].play();
     }
+
+
 
     function stopTaskSound(taskName) {
         if (!sounds[taskName]) return;
