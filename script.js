@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // This is your specific server URL. Make sure it's correct!
+    // This is your specific server URL.
     const socket = io('https://8b503b84-132c-4149-bdb3-8bef57ec4fd8-00-2ga0ewjtdd2yk.worf.replit.dev');
 
-    // --- NEW: Tell the server to create a game as soon as we connect ---
+    // Tell the server to create a game as soon as we connect
     socket.on('connect', () => {
         console.log('Connected to server! Requesting a new game room...');
         socket.emit('create-game');
@@ -19,7 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const adPopup = document.getElementById('ad-popup-overlay');
     const adImage = document.getElementById('ad-image');
     const adCloseButton = document.getElementById('ad-close-button');
-    const roomCodeDisplay = document.getElementById('room-code-display'); // Get the new display element
+    
+    // NEW selectors for the updated room code display
+    const roomCodeContainer = document.getElementById('room-code-container');
+    const roomCodeText = document.getElementById('room-code-text');
+    const roomCodeToggle = document.getElementById('room-code-toggle');
 
     // --- State Management Variables ---
     let hasBooted = false;
@@ -29,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const adImageUrls = ['Images/AD2.jpg', 'Images/AD1.jpg'];
 
+    // --- Sound Setup ---
     const sounds = {
         bootup: new Audio('sounds/bootup2.wav'),
         computerLoop: new Audio('sounds/computer2.wav'),
@@ -45,12 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- NEW: Listen for server events ---
     socket.on('game-created', (data) => {
         console.log(`Game created with code: ${data.roomCode}`);
-        roomCodeDisplay.textContent = `CODE: ${data.roomCode}`;
+        roomCodeText.textContent = `CODE: ${data.roomCode}`; // Use the new text element
     });
 
     socket.on('player-joined', (data) => {
         console.log(`An animatronic has joined! Total animatronics: ${data.playerCount}`);
-        // You could add a visual notification here if you wanted
     });
 
     socket.on('trigger-event', (data) => {
@@ -61,6 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
             triggerJumpscare();
         }
     });
+    
+    // --- NEW: Logic for the hide/show button ---
+    roomCodeToggle.addEventListener('click', () => {
+        roomCodeContainer.classList.toggle('collapsed');
+    });
+
+    // --- YOUR ORIGINAL GAME LOGIC FUNCTIONS ---
 
     function triggerAdPopup() {
         if (isPowerOn) {
@@ -75,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sounds.ad.play();
         }
     }
-    
+
     function triggerJumpscare() {
         if (isPowerOn) {
             const monitor = document.querySelector('.monitor-screen');
@@ -86,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- All other game logic remains the same ---
     powerButton.addEventListener('click', () => {
         sounds.click.play();
         if (!hasBooted) {
@@ -116,7 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
             switch (parentTaskId) {
                 case 'task-1': taskName = 'calibrate'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break;
                 case 'task-2': taskName = 'printing'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break;
-                case 'task-3': taskName = 'order'; taskDuration = 150000; break;
+                // Note: You referenced task-4 and task-3, I kept your original logic
+                case 'task-4': taskName = 'order'; taskDuration = 150000; break; // Assuming 'Accept Sponsorships' is the order task
+                case 'task-3': taskName = 'calibrate'; taskDuration = Math.floor(Math.random() * 45000) + 30000; break; // Assuming 'Calibrate' is calibrate
             }
             startTask(button, taskDuration, taskName);
         });
