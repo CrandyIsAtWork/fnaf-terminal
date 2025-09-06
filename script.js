@@ -1,15 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io('https://8b503b84-132c-4149-bdb3-8bef57ec4fd8-00-2ga0ewjtdd2yk.worf.replit.dev');
 
-    socket.on('connect', () => {
-        console.log('Connected to server! Requesting a new game room...');
-        socket.emit('create-game');
-    });
-
     // --- Element Selectors ---
-    // ADD THESE TWO LINES
-const errorTemplate = document.getElementById('error-template');
-const monitorScreen = document.querySelector('.monitor-screen');
+    const errorTemplate = document.getElementById('error-template');
+    const monitorScreen = document.querySelector('.monitor-screen');
     const powerButton = document.getElementById('power-button');
     const loadingContainer = document.getElementById('loading-container');
     const bootSequence = document.getElementById('boot-sequence');
@@ -26,6 +20,7 @@ const monitorScreen = document.querySelector('.monitor-screen');
     const messageLog = document.getElementById('message-log');
 
     // --- State Management Variables ---
+    let openGlitches = 0;
     let hasBooted = false;
     let isPowerOn = false;
     let currentTaskState = {};
@@ -51,57 +46,93 @@ const monitorScreen = document.querySelector('.monitor-screen');
     sounds.ad.loop = true;
 
     // --- Listen for server events ---
+    socket.on('connect', () => {
+        console.log('Connected! Requesting game room...');
+        socket.emit('create-game');
+    });
+
     socket.on('game-created', (data) => {
-        console.log(`Game created with code: ${data.roomCode}`);
         roomCodeText.textContent = `CODE: ${data.roomCode}`;
     });
 
     socket.on('player-joined', (data) => {
-        console.log(`An animatronic has joined! Total animatronics: ${data.playerCount}`);
+        console.log(`Animatronic joined. Total: ${data.playerCount}`);
     });
 
     socket.on('trigger-event', (data) => {
-        console.log('Received event from animatronic:', data.type);
         if (data.type === 'ad') {
             triggerAdPopup();
         }
     });
 
+    socket.on('sabotage-successful', () => {
+        if (isPowerOn && currentTaskState.progress > 0 && currentTaskState.progress < 100) {
+            console.log('Task sabotaged!');
+            currentTaskState.progress -= 30; // Knock back progress by 30%
+            if (currentTaskState.progress < 0) currentTaskState.progress = 0;
+            progressBar.style.width = `${currentTaskState.progress}%`;
+        }
+    });
+
+    socket.on('glitch-successful', () => {
+        if (!isPowerOn || openGlitches > 0) return;
+
+        if (currentTaskState.progress > 0 && currentTaskState.progress < 100) {
+            currentTaskState.isPaused = true;
+            stopTaskSound(currentTaskState.taskName);
+        }
+
+        const numErrors = Math.floor(Math.random() * 3) + 4; // 4 to 6 errors
+        for (let i = 0; i < numErrors; i++) {
+            openGlitches++;
+            const newError = errorTemplate.cloneNode(true);
+            newError.removeAttribute('id');
+            newError.classList.remove('hidden');
+
+            const top = Math.random() * (monitorScreen.clientHeight - 150);
+            const left = Math.random() * (monitorScreen.clientWidth - 270);
+            newError.style.top = `${top}px`;
+            newError.style.left = `${left}px`;
+
+            const errorCode = `0x${Math.random().toString(16).substr(2, 8).toUpperCase()}`;
+            newError.querySelector('.error-code').textContent = `ERROR: ${errorCode}`;
+
+            newError.querySelector('.error-ok-btn').addEventListener('click', () => {
+                newError.remove();
+                openGlitches--;
+                if (openGlitches === 0 && currentTaskState.isPaused) {
+                    currentTaskState.isPaused = false;
+                    updateProgress();
+                    playTaskSound(currentTaskState.taskName);
+                }
+            });
+            monitorScreen.appendChild(newError);
+        }
+    });
+
     socket.on('receive-message', (data) => {
         if (!isPowerOn) return;
-
         const { message, sender } = data;
-        
         messageLog.classList.remove('hidden');
-
         const messageItem = document.createElement('li');
         const avatarImg = document.createElement('img');
         const textContainer = document.createElement('div');
         const senderName = document.createElement('strong');
-
         avatarImg.classList.add('message-avatar');
         avatarImg.src = `https://crandyisatwork.github.io/fnaf-terminal/${sender.avatar}`;
-
         senderName.textContent = `${sender.name}: `;
         senderName.style.color = sender.color;
         textContainer.appendChild(senderName);
         textContainer.appendChild(document.createTextNode(message));
-        
         messageItem.appendChild(avatarImg);
         messageItem.appendChild(textContainer);
-
         messageLog.appendChild(messageItem);
-
-        // The 5-message limit check has been removed.
-
-        // Automatically scroll to the bottom
         messageLog.scrollTop = messageLog.scrollHeight;
     });
-    
+
     socket.on('trigger-sound', (data) => {
         const soundName = data.soundName;
         if (isPowerOn && sounds[soundName]) {
-            console.log(`Playing sound: ${soundName}`);
             sounds[soundName].play();
         }
     });
@@ -282,7 +313,6 @@ const monitorScreen = document.querySelector('.monitor-screen');
     }
 
     function playTaskSound(taskName) {
-        stopTaskSound(currentTaskState.taskName);
         if (!sounds[taskName]) return;
         sounds[taskName].currentTime = 0;
         sounds[taskName].loop = true;
