@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Element Selectors ---
+    // ADD THESE TWO LINES
+const errorTemplate = document.getElementById('error-template');
+const monitorScreen = document.querySelector('.monitor-screen');
     const powerButton = document.getElementById('power-button');
     const loadingContainer = document.getElementById('loading-container');
     const bootSequence = document.getElementById('boot-sequence');
