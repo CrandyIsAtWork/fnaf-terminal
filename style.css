@@ -1,13 +1,42 @@
-#room-code-display {
-    position: absolute;
-    top: 15px;
-    right: 25px;
+/* Styles for the new room code container */
+#room-code-container {
+    position: fixed; /* Stays in place */
+    top: 20px;
+    right: 20px;
+    z-index: 1000; /* On top of everything */
+    background-color: #1a1a1a;
+    border: 2px solid #00ff00;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    transition: transform 0.3s ease;
+}
+
+#room-code-text {
     color: #00ff00;
     font-size: 1.5em;
     text-shadow: 1px 1px #000;
-    background-color: #1a1a1a;
-    padding: 5px 10px;
-    border: 1px solid #00ff00;
+    margin-right: 15px;
+}
+
+#room-code-toggle {
+    background: none;
+    border: none;
+    color: #00ff00;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 0 5px;
+    transition: transform 0.3s ease;
+}
+
+/* This class will be added by JavaScript to hide the code */
+#room-code-container.collapsed {
+    transform: translateX(calc(100% - 45px)); /* Hides most of the box */
+}
+
+#room-code-container.collapsed #room-code-toggle {
+    transform: rotate(180deg); /* Flips the arrow */
+}
 }
 /* CSS styling for the terminal interface */
 :root {
