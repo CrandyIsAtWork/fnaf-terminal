@@ -9,16 +9,6 @@
 </head>
 <body>
 
-    <div id="error-template" class="error-popup hidden">
-    <div class="error-header">
-        <span>System Error</span>
-    </div>
-    <div class="error-body">
-        <p class="error-code">ERROR: 0xDEADBEEF</p>
-        <button class="error-ok-btn">OK</button>
-    </div>
-</div>
-    
     <div id="room-code-container">
         <button id="room-code-toggle">▼</button>
         <span id="room-code-text"></span>
@@ -70,12 +60,20 @@
                 <div id="progress-bar"></div>
             </div>
         </div>
-
+        
         <div id="ad-popup-overlay">
             <div id="ad-popup-content">
                 <button id="ad-close-button">X</button>
                 <img id="ad-image" src="" alt="Advertisement">
             </div>
+        </div>
+    </div>
+
+    <div id="error-template" class="error-popup hidden">
+        <div class="error-header"><span>System Error</span></div>
+        <div class="error-body">
+            <p class="error-code">ERROR: 0xDEADBEEF</p>
+            <button class="error-ok-btn">OK</button>
         </div>
     </div>
 
