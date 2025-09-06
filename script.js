@@ -67,37 +67,29 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('receive-message', (data) => {
         if (!isPowerOn) return;
 
-        const { message, sender } = data; // sender = { name, color, avatar }
+        const { message, sender } = data;
         
         messageLog.classList.remove('hidden');
 
-        // Create the new list item and its contents
         const messageItem = document.createElement('li');
         const avatarImg = document.createElement('img');
         const textContainer = document.createElement('div');
         const senderName = document.createElement('strong');
 
-        // Set up the avatar image
         avatarImg.classList.add('message-avatar');
         avatarImg.src = `https://crandyisatwork.github.io/fnaf-terminal/${sender.avatar}`;
 
-        // Set up the text content
         senderName.textContent = `${sender.name}: `;
         senderName.style.color = sender.color;
         textContainer.appendChild(senderName);
         textContainer.appendChild(document.createTextNode(message));
         
-        // Add the avatar and text to the list item
         messageItem.appendChild(avatarImg);
         messageItem.appendChild(textContainer);
 
-        // Add the new message to the log
         messageLog.appendChild(messageItem);
 
-        // If the log has more than 5 messages, remove the oldest one
-        if (messageLog.children.length > 5) {
-            messageLog.removeChild(messageLog.firstChild);
-        }
+        // The 5-message limit check has been removed.
 
         // Automatically scroll to the bottom
         messageLog.scrollTop = messageLog.scrollHeight;
@@ -293,8 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
         sounds[taskName].loop = true;
         sounds[taskName].play();
     }
-
-
 
     function stopTaskSound(taskName) {
         if (!sounds[taskName]) return;
