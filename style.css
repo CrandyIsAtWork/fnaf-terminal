@@ -1,3 +1,14 @@
+#room-code-display {
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    color: #00ff00;
+    font-size: 1.5em;
+    text-shadow: 1px 1px #000;
+    background-color: #1a1a1a;
+    padding: 5px 10px;
+    border: 1px solid #00ff00;
+}
 /* CSS styling for the terminal interface */
 :root {
     --pixel-green: #00ff00;
