@@ -9,9 +9,13 @@
 </head>
 <body>
 
+    <div id="room-code-container">
+        <span id="room-code-text"></span>
+        <button id="room-code-toggle">▼</button>
+    </div>
+
     <div class="monitor-screen">
         
-        <!-- Power Button with SVG -->
         <button id="power-button">
             <svg viewBox="0 0 64 64">
                 <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="6" fill="none"/>
@@ -31,7 +35,6 @@
         </div>
 
         <div class="task-terminal d-none">
-            <div id="room-code-display"></div>
             <div class="terminal-header">-- FAZBEAR ENTERTAINMENT --<br>-- DAILY TASKS [v0.9] --</div>
             <div id="task-container">
                 <div class="task-item" id="task-1">
@@ -64,6 +67,10 @@
         </div>
     </div>
 
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="script.js"></script>
 </body>
