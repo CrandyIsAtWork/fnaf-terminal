@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const roomCodeContainer = document.getElementById('room-code-container');
     const roomCodeText = document.getElementById('room-code-text');
     const roomCodeToggle = document.getElementById('room-code-toggle');
-    // NEW selector for the message display
     const messageDisplay = document.getElementById('message-display');
     let messageTimeout;
 
@@ -40,7 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ad: new Audio('sounds/ad.mp3'),
         printing: new Audio('sounds/printing.mp3'),
         order: new Audio('sounds/orderitem3.mp3'),
-        calibrate: new Audio('sounds/calibrating.mp3')
+        calibrate: new Audio('sounds/calibrating.mp3'),
+        // UPDATED: Your four new sounds
+        laugh: new Audio('sounds/fnaf-freddys-laugh.mp3'),
+        beatbox: new Audio('sounds/freddy-beatbox-pas-en-entier-snif.mp3'),
+        glitch: new Audio('sounds/golden-freddy-glitch-sound.mp3'),
+        scream: new Audio('sounds/shadow-man-scream.mp3')
     };
     sounds.computerLoop.loop = true;
     sounds.ad.loop = true;
@@ -55,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`An animatronic has joined! Total animatronics: ${data.playerCount}`);
     });
 
-    // UPDATED: No longer checks for 'popup'
     socket.on('trigger-event', (data) => {
         console.log('Received event from animatronic:', data.type);
         if (data.type === 'ad') {
@@ -63,15 +66,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // NEW: Listen for messages and display them with a typing effect
     socket.on('receive-message', (data) => {
-        if (!isPowerOn) return; // Don't show messages if computer is off
+        if (!isPowerOn) return;
         if (messageTimeout) clearTimeout(messageTimeout);
-
         const message = data.message;
         messageDisplay.textContent = '';
         messageDisplay.classList.remove('hidden');
-
         let i = 0;
         const typingInterval = setInterval(() => {
             if (i < message.length) {
@@ -79,15 +79,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 i++;
             } else {
                 clearInterval(typingInterval);
-                // Hide the message after 5 seconds
                 messageTimeout = setTimeout(() => {
                     messageDisplay.classList.add('hidden');
                 }, 5000);
             }
-        }, 100); // 100ms delay between characters
+        }, 100);
+    });
+    
+    socket.on('trigger-sound', (data) => {
+        const soundName = data.soundName;
+        if (isPowerOn && sounds[soundName]) {
+            console.log(`Playing sound: ${soundName}`);
+            sounds[soundName].play();
+        }
     });
 
-    // --- UI Logic ---
+    // --- UI Logic and other functions ---
     roomCodeToggle.addEventListener('click', () => {
         roomCodeContainer.classList.toggle('collapsed');
     });
