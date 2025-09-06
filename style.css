@@ -37,6 +37,7 @@
 #room-code-container.collapsed #room-code-toggle {
     transform: rotate(180deg); /* Flips the arrow */
 }
+
 /* CSS styling for the terminal interface */
 :root {
     --pixel-green: #00ff00;
@@ -99,8 +100,8 @@ body {
 /* --- SVG Power Button --- */
 #power-button {
     position: absolute;
-    bottom: -10px;  /* below the border */
-    right: -10px;   /* outside the border slightly */
+    bottom: -10px; /* below the border */
+    right: -10px;  /* outside the border slightly */
     width: 50px;
     height: 50px;
     background-color: #a00;
