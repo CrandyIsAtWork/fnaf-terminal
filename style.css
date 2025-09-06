@@ -1,3 +1,24 @@
+#message-display {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    background-color: rgba(10, 10, 10, 0.8);
+    border: 2px solid var(--pixel-green);
+    color: var(--pixel-green);
+    padding: 15px;
+    font-size: 1.5em;
+    text-align: center;
+    z-index: 200;
+    white-space: nowrap;
+    overflow: hidden;
+    border-right: .15em solid var(--pixel-green); /* The typewriter cursor */
+}
+
+#message-display.hidden {
+    display: none;
+}
 /* Styles for the new room code container */
 #room-code-container {
     position: fixed; /* Stays in place */
