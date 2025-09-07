@@ -236,18 +236,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateProgress() {
-        if (currentTaskState.isPaused || !isPowerOn) return;
-        const timeElapsed = Date.now() - currentTaskState.startTime - currentTaskState.timePaused;
-        let progress = (timeElapsed / currentTaskState.duration) * 100;
-        if (progress >= 100) {
-            progressBar.style.width = '100%';
-            finishTask(currentTaskState.button);
-        } else {
-            progressBar.style.width = `${progress}%`;
-            const lagTime = 50 + Math.random() * 200;
-            progressTimeoutId = setTimeout(updateProgress, lagTime);
-        }
+    if (currentTaskState.isPaused || !isPowerOn) return;
+
+    const timeElapsed = Date.now() - currentTaskState.startTime - currentTaskState.timePaused;
+    let progress = Math.min(100, (timeElapsed / currentTaskState.duration) * 100); // Ensure progress doesn't exceed 100
+
+    // --- NEW LINE ---
+    // Emit the current progress to the server so it knows what's happening.
+    socket.emit('progress-update', { taskId: currentTaskState.button.parentElement.id, progress: progress });
+    // --- END NEW LINE ---
+
+    if (progress >= 100) {
+        progressBar.style.width = '100%';
+        finishTask(currentTaskState.button);
+    } else {
+        progressBar.style.width = `${progress}%`;
+        const lagTime = 50 + Math.random() * 200;
+        progressTimeoutId = setTimeout(updateProgress, lagTime);
     }
+}
 
     function resetCurrentTask() {
         if (!currentTaskState.startTime) return;
