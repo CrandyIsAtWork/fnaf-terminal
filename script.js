@@ -1,7 +1,51 @@
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io('https://8b503b84-132c-4149-bdb3-8bef57ec4fd8-00-2ga0ewjtdd2yk.worf.replit.dev');
 
+    const perkData = {
+    'avatars/avatar1.jpg': { name: "Fazbear's Anthem", desc: "Every time you play \"Freddy's Laugh\", there is a 25% chance the Guard's current task has its total time increased by 2 seconds." },
+    'avatars/avatar2.jpg': { name: "Jam Session", desc: "When you play any sound, there is a 20% chance to cause a power surge that briefly pauses the Guard's current task for 3 seconds." },
+    'avatars/avatar3.jpg': { name: "Running Buttons", desc: "When any animatronic uses Sabotage Task, your presence causes the Guard's task buttons to run away from their mouse cursor for 10 seconds." },
+    'avatars/avatar4.jpg': { name: "Pirate's Haste", desc: "All of your ability cooldowns are permanently 10% shorter." },
+    'avatars/avatar5.jpg': { name: "Agonized Remnant", desc: "When you use System Glitch, it generates triple the normal number of error pop-ups which are visually glitched, rapidly shaking and flashing." },
+    'avatars/avatar6.jpg': { name: "Aggressive AI", desc: "For each task the Guard successfully completes, all of your ability cooldowns are permanently reduced by 20%." },
+    'avatars/avatar7.jpg': { name: "Digital Eyes", desc: "When any animatronic activates Annoying Ad, there is a 50% chance your face will flash in the ad, delaying its close button by an extra 2 seconds." },
+    'avatars/avatar8.jpg': { name: "Cupcake's Revenge", desc: "When any animatronic uses System Glitch, your bonus adds one extra cupcake pop-up whose 'OK' button actively runs away from the Guard's mouse for 3 seconds." },
+    'avatars/avatar9.jpg': { name: "Signal Jam", desc: "Activate your unique ability to jam the Guard's video feed, blinding them with heavy static for 5 seconds. (20s Cooldown)" },
+    'avatars/avatar10.jpg': { name: "Pesky Distraction", desc: "When any animatronic uses Annoying Ad, your bonus has a 50% chance to also stop the Guard's current task, kicking them out of the progress screen." },
+    'avatars/avatar11.jpg': { name: "Music Box", desc: "Adds a music box to the Guard's terminal they must keep wound. If they fail, you can restore a completed task to an unfinished state." },
+    'avatars/avatar12.jpg': { name: "Hide and Seek", desc: "When any animatronic uses Annoying Ad, your bonus makes the Guard's mouse cursor disappear for 3 seconds after the ad is closed and reappear randomly." },
+    'avatars/avatar13.jpg': { name: "IT'S ME", desc: "Every Guard mouse click has a 3% chance to unlock your one-time use ultimate ability. When activated, it resets ALL of their tasks (even completed ones) to 0%." },
+    'avatars/avatar14.jpg': { name: "Phantom Sabotage", desc: "Activate your unique ability to trigger a fake 'GET OUT' sabotage pop-up on the Guard's screen to bluff them. (10s Cooldown)" },
+    'avatars/avatar15.jpg': { name: "Pop-Up Scare", desc: "When any animatronic uses Annoying Ad, there is a 50% chance to precede it with a full-screen jump scare image of your face." },
+    'avatars/avatar16.jpg': { name: "Unfaced Aggression", desc: "The cooldown for your System Glitch ability is permanently 20 seconds shorter." },
+    'avatars/avatar17.jpg': { name: "Freddle Infestation", desc: "Gain 1 'Freddle' counter for team Ad or Glitch uses. At 3 counters, the Guard's next task will require 20% more time to complete." },
+    'avatars/avatar18.jpg': { name: "Eternal Fright", desc: "Once per game, you can revert one COMPLETED task to 0%. That task is now permanently haunted and progresses 25% slower." },
+    'avatars/avatar19.jpg': { name: "Frenzied Attack", desc: "The cooldown for your Sabotage Task ability is permanently 15 seconds shorter." },
+    'avatars/avatar20.jpg': { name: "Pumpkin Toss", desc: "When any animatronic uses Annoying Ad, your arm emerges and throws a pumpkin at the Guard's cursor, sending it flying to a random location." },
+    'avatars/avatar21.jpg': { name: "Unforeseen Consequences", desc: "When any animatronic uses Sabotage Task, there is a 30% chance to also trigger a random secondary event (Glitch, Ad, or Signal Jam)." },
+    'avatars/avatar22.jpg': { name: "Bite Sized", desc: "When any animatronic uses Annoying Ad, there is a 40% chance to also trigger a mini System Glitch with 3 un-closeable pop-ups that drift off-screen." },
+    'avatars/avatar23.jpg': { name: "Please Deposit Five Coins", desc: "Gain 1 'Faz-Coin' when any animatronic uses an ability. At 3 coins, you can activate your ability to instantly drain 100% of the progress from the Guard's active task." },
+    'avatars/avatar24.jpg': { name: "Power Chord", desc: "When you play any sound, there is a 20% chance of a 'Power Chord' that makes the Guard's UI shake and rapidly drain their active task's progress for 3 seconds." },
+    'avatars/avatar25.jpg': { name: "Rattle the System", desc: "When you use System Glitch, the error pop-ups rattle violently, making the 'OK' buttons slightly harder to click." },
+    'avatars/avatar26.jpg': { name: "A Pirate's Gamble", desc: "Activate your ability to trigger a 'Click the Parrot!' pop-up for the Guard (4s timer). Success gives the Guard a 5% boost. Failure results in an immediate Sabotage Task." },
+    'avatars/avatar27.jpg': { name: "A Lengthy Monologue", desc: "Once per game, activate your ability to force an un-skippable 15-second story monologue on the Guard's screen, preventing any other actions." },
+    'avatars/avatar28.jpg': { name: "You'll Never See Me Coming!", desc: "When you use System Glitch, the error pop-ups are invisible for the first 2 seconds." },
+    'avatars/avatar29.jpg': { name: "Banjo Tune", desc: "When you play any sound, there is a 25% chance of a banjo riff that permanently slows the Guard's mouse cursor movement speed by 50% for the rest of the game." },
+    'avatars/avatar30.jpg': { name: "Vanishing Act", desc: "Activate your unique ability to make one of the Guard's task buttons invisible and non-functional for 15 seconds. (60s Cooldown)" },
+    'avatars/avatar31.jpg': { name: "System Clutter", desc: "When any animatronic uses System Glitch, three extra, non-functional pop-ups appear, visually cluttering the screen." },
+    'avatars/avatar32.jpg': { name: "Silent Threat", desc: "Your Sabotage Task has a 10s longer cooldown but is completely silent. It also locks the Guard out of that task until all other tasks are completed." },
+    'avatars/avatar33.jpg': { name: "Faulty Training", desc: "Activate your unique ability to temporarily remove the Guard's active task. The task only returns after they have completed all other available tasks. (75s Cooldown)" },
+    'avatars/avatar34.jpg': { name: "Drown Your Demons", desc: "Activate your ability to trigger a fishing minigame pop-up. The Guard must press 'C' with perfect timing to dismiss it. (20s Cooldown)" },
+    'avatars/avatar35.jpg': { name: "Ceaseless Dread", desc: "Constantly writhing tendrils line the Guard's screen. If the Guard's mouse hovers over a task button for more than 2 seconds, a tendril disables that button for 5 seconds." },
+    'avatars/avatar36.jpg': { name: "Marked for Death", desc: "Activate your ability to 'mark' one task for 30 seconds. Progress on that task is reduced by 50%, and you can see its progress bar. (60s Cooldown)" },
+    'avatars/avatar37.jpg': { name: "System Venom", desc: "Your Sabotage Task only resets 50% progress but also 'poisons' the task, causing its progress to drain for 20 seconds. The Guard can fight it by rapidly clicking." },
+    'avatars/avatar38.jpg': { name: "Evil Within", desc: "Start in Tier 1 (longer cooldowns). Use your Stalk ability to watch the Guard's progress bar to rank up. Reach Tier 3 for a massive, temporary power boost." }
+};
     // --- Element Selectors ---
+    const rosterToggleButton = document.getElementById('roster-toggle-button');
+const rosterModal = document.getElementById('roster-modal');
+const rosterModalClose = document.getElementById('roster-modal-close');
+const rosterList = document.getElementById('roster-list');
     const sabotageOverlay = document.getElementById('sabotage-overlay');
     const sabotageOkBtn = document.getElementById('sabotage-ok-btn');
     const errorTemplate = document.getElementById('error-template');
@@ -284,3 +328,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+rosterToggleButton.addEventListener('click', () => {
+    rosterModal.classList.toggle('hidden');
+});
+
+rosterModalClose.addEventListener('click', () => {
+    rosterModal.classList.add('hidden');
+});
+
+// Listen for roster updates from the server
+socket.on('update-roster', (data) => {
+    renderRoster(data.animatronics);
+});
+
+function renderRoster(animatronics) {
+    rosterList.innerHTML = ''; // Clear the current list
+
+    if (animatronics.length === 0) {
+        rosterList.innerHTML = '<li>No animatronics have joined yet.</li>';
+        return;
+    }
+
+    animatronics.forEach(player => {
+        const listItem = document.createElement('li');
+
+        const avatarImg = document.createElement('img');
+        avatarImg.src = `https://crandyisatwork.github.io/fnaf-terminal/${player.avatar}`;
+        avatarImg.className = 'roster-avatar';
+
+        const playerName = document.createElement('span');
+        playerName.className = 'roster-player-name';
+        playerName.textContent = player.name;
+        playerName.style.color = player.color;
+        playerName.style.textShadow = '2px 2px #000';
+
+        const perkButton = document.createElement('button');
+        perkButton.className = 'roster-perk-info-btn';
+        perkButton.textContent = 'i';
+        perkButton.addEventListener('click', () => {
+            const perk = perkData[player.avatar];
+            if (perk) {
+                alert(`Perk: ${perk.name}\n\n${perk.desc}`);
+            } else {
+                alert('Perk information not available for this character.');
+            }
+        });
+
+        listItem.appendChild(avatarImg);
+        listItem.appendChild(playerName);
+        listItem.appendChild(perkButton);
+        rosterList.appendChild(listItem);
+    });
+}
