@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const socket = io('https://8b503b84-132c-4149-bdb3-8bef57ec4fd8-00-2ga0ewjtdd2yk.worf.replit.dev');
 
     // --- Element Selectors ---
+    const sabotageOverlay = document.getElementById('sabotage-overlay');
+    const sabotageOkBtn = document.getElementById('sabotage-ok-btn');
     const errorTemplate = document.getElementById('error-template');
     const monitorScreen = document.querySelector('.monitor-screen');
     const powerButton = document.getElementById('power-button');
@@ -53,40 +55,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     socket.on('sabotage-successful', () => {
         if (isPowerOn && currentTaskState.startTime && !currentTaskState.isPaused) {
-            console.log('Task sabotaged!');
-            // Add 5 seconds to the total duration to slow down the task
-            currentTaskState.duration += 5000;
+            console.log('Task sabotaged! Resetting...');
+            resetCurrentTask();
+            sabotageOverlay.classList.remove('hidden');
+            sabotageOverlay.classList.add('visible');
         }
     });
 
     socket.on('glitch-successful', () => {
         if (!isPowerOn || openGlitches > 0) return;
-        
-        if (currentTaskState.startTime && !currentTaskState.isPaused) {
-            pauseTask();
-        }
-
-        const numErrors = Math.floor(Math.random() * 3) + 4; // 4 to 6 errors
+        if (currentTaskState.startTime && !currentTaskState.isPaused) { pauseTask(); }
+        const numErrors = Math.floor(Math.random() * 3) + 4;
         for (let i = 0; i < numErrors; i++) {
             openGlitches++;
             const newError = errorTemplate.cloneNode(true);
             newError.removeAttribute('id');
             newError.classList.remove('hidden');
-
             const top = Math.random() * (monitorScreen.clientHeight - 150);
             const left = Math.random() * (monitorScreen.clientWidth - 270);
             newError.style.top = `${top}px`;
             newError.style.left = `${left}px`;
-            
             const errorCode = `0x${Math.random().toString(16).substr(2, 8).toUpperCase()}`;
             newError.querySelector('.error-code').textContent = `ERROR: ${errorCode}`;
-
             newError.querySelector('.error-ok-btn').addEventListener('click', () => {
                 newError.remove();
                 openGlitches--;
-                if (openGlitches === 0 && currentTaskState.isPaused) {
-                    resumeTask();
-                }
+                if (openGlitches === 0 && currentTaskState.isPaused) { resumeTask(); }
             });
             monitorScreen.appendChild(newError);
         }
@@ -112,32 +106,28 @@ document.addEventListener('DOMContentLoaded', () => {
         messageLog.scrollTop = messageLog.scrollHeight;
     });
     
-    socket.on('trigger-sound', (data) => {
-        if (isPowerOn && sounds[data.soundName]) {
-            sounds[data.soundName].play();
-        }
-    });
+    socket.on('trigger-sound', (data) => { if (isPowerOn && sounds[data.soundName]) { sounds[data.soundName].play(); } });
 
     // --- UI Logic and other functions ---
-    roomCodeToggle.addEventListener('click', () => {
-        roomCodeContainer.classList.toggle('collapsed');
+    sabotageOkBtn.addEventListener('click', () => {
+        sabotageOverlay.classList.add('hidden');
+        sabotageOverlay.classList.remove('visible');
+        reenableButtons();
     });
+
+    roomCodeToggle.addEventListener('click', () => { roomCodeContainer.classList.toggle('collapsed'); });
 
     function triggerAdPopup() {
         if (isPowerOn) {
-            if (currentTaskState.startTime && !currentTaskState.isPaused) {
-                pauseTask();
-            }
+            if (currentTaskState.startTime && !currentTaskState.isPaused) { pauseTask(); }
             const randomAdUrl = adImageUrls[Math.floor(Math.random() * adImageUrls.length)];
             adImage.src = randomAdUrl;
             adPopup.style.display = 'flex';
             sounds.ad.currentTime = 0;
             sounds.ad.play();
-
             adCloseButton.disabled = true;
             let countdown = 5;
             adCloseButton.textContent = countdown;
-
             const countdownInterval = setInterval(() => {
                 countdown--;
                 adCloseButton.textContent = countdown;
@@ -153,18 +143,12 @@ document.addEventListener('DOMContentLoaded', () => {
     adCloseButton.addEventListener('click', () => {
         adPopup.style.display = 'none';
         sounds.ad.pause();
-        if (currentTaskState.isPaused) {
-            resumeTask();
-        }
+        if (currentTaskState.isPaused) { resumeTask(); }
     });
 
     powerButton.addEventListener('click', () => {
         sounds.click.play();
-        if (!hasBooted) {
-            startBootSequence();
-        } else {
-            togglePower();
-        }
+        if (!hasBooted) { startBootSequence(); } else { togglePower(); }
     });
 
     taskButtons.forEach(button => {
@@ -187,25 +171,15 @@ document.addEventListener('DOMContentLoaded', () => {
         clickedButton.textContent = '...';
         progressContainer.classList.remove('hidden');
         progressBar.style.width = '0%';
-        currentTaskState = {
-            startTime: Date.now(),
-            duration: duration,
-            isPaused: false,
-            button: clickedButton,
-            taskName: taskName,
-            timePaused: 0,
-            pauseStart: 0
-        };
+        currentTaskState = { startTime: Date.now(), duration: duration, isPaused: false, button: clickedButton, taskName: taskName, timePaused: 0, pauseStart: 0 };
         playTaskSound(taskName);
         updateProgress();
     }
 
     function updateProgress() {
         if (currentTaskState.isPaused || !isPowerOn) return;
-
         const timeElapsed = Date.now() - currentTaskState.startTime - currentTaskState.timePaused;
         let progress = (timeElapsed / currentTaskState.duration) * 100;
-
         if (progress >= 100) {
             progressBar.style.width = '100%';
             finishTask(currentTaskState.button);
@@ -214,6 +188,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const lagTime = 50 + Math.random() * 200;
             progressTimeoutId = setTimeout(updateProgress, lagTime);
         }
+    }
+
+    function resetCurrentTask() {
+        if (!currentTaskState.startTime) return;
+        stopTaskSound(currentTaskState.taskName);
+        clearTimeout(progressTimeoutId);
+        progressContainer.classList.add('hidden');
+        progressBar.style.width = '0%';
+        currentTaskState.button.textContent = 'BEGIN';
+        taskButtons.forEach(btn => btn.disabled = true); // Keep buttons disabled until pop-up is closed
+        currentTaskState = {};
     }
     
     function pauseTask() {
@@ -237,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function finishTask(clickedButton) {
         clearTimeout(progressTimeoutId);
         stopTaskSound(currentTaskState.taskName);
-        currentTaskState = {}; // Clear the current task
+        currentTaskState = {};
         setTimeout(() => {
             progressContainer.classList.add('hidden');
             progressBar.style.width = '0%';
@@ -249,19 +234,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function startBootSequence() {
-        hasBooted = true;
-        isPowerOn = true;
+        hasBooted = true; isPowerOn = true;
         powerButton.classList.add('d-none');
         loadingContainer.classList.remove('d-none');
         bootSequence.classList.add('active');
-        sounds.bootup.currentTime = 0;
-        sounds.bootup.play();
-        sounds.bootup.onended = () => {
-            if (isPowerOn) {
-                sounds.computerLoop.currentTime = 0;
-                sounds.computerLoop.play();
-            }
-        };
+        sounds.bootup.currentTime = 0; sounds.bootup.play();
+        sounds.bootup.onended = () => { if (isPowerOn) { sounds.computerLoop.currentTime = 0; sounds.computerLoop.play(); } };
         setTimeout(() => {
             loadingContainer.classList.add('d-none');
             taskTerminal.classList.remove('d-none');
@@ -274,16 +252,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isPowerOn) {
             taskTerminal.classList.remove('d-none');
             sounds.computerLoop.play();
-            if (currentTaskState.isPaused) {
-                resumeTask();
-            }
+            if (currentTaskState.isPaused) { resumeTask(); }
         } else {
             taskTerminal.classList.add('d-none');
             sounds.computerLoop.pause();
             sounds.powerDown.play();
-            if (currentTaskState.startTime) {
-                pauseTask();
-            }
+            if (currentTaskState.startTime) { pauseTask(); }
         }
     }
 
