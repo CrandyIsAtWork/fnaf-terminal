@@ -171,6 +171,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    socket.on('chica-ability-trigger', () => {
+    activateRunningButtons();
+});
+
     // --- UI Event Listeners ---
     rosterToggleButton.addEventListener('click', () => { rosterModal.classList.toggle('hidden'); });
     rosterModalClose.addEventListener('click', () => { rosterModal.classList.add('hidden'); });
@@ -397,6 +401,60 @@ document.addEventListener('DOMContentLoaded', () => {
             listItem.appendChild(perkButton);
             rosterList.appendChild(listItem);
         });
+    }
+
+    function activateRunningButtons() {
+        console.log("CHICA PERK: Buttons are now running!");
+        const effectDuration = 10000; // 10 seconds
+        const moveDistance = 60; // How far the buttons can move from their origin
+        const repelRadius = 150; // How close the mouse must be to affect the buttons
+
+        // Store the original positions of the buttons
+        const originalPositions = new Map();
+        taskButtons.forEach(btn => {
+            originalPositions.set(btn, { top: btn.offsetTop, left: btn.offsetLeft });
+            btn.style.position = 'relative'; // Ensure we can move them
+        });
+
+        const mouseMoveHandler = (e) => {
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+
+            taskButtons.forEach(btn => {
+                if (btn.disabled) return; // Don't move buttons for completed tasks
+
+                const rect = btn.getBoundingClientRect();
+                const btnCenterX = rect.left + rect.width / 2;
+                const btnCenterY = rect.top + rect.height / 2;
+                
+                const deltaX = btnCenterX - mouseX;
+                const deltaY = btnCenterY - mouseY;
+                
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                if (distance < repelRadius) {
+                    const angle = Math.atan2(deltaY, deltaX);
+                    const moveX = Math.cos(angle) * moveDistance * (1 - distance / repelRadius);
+                    const moveY = Math.sin(angle) * moveDistance * (1 - distance / repelRadius);
+                    btn.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                } else {
+                    btn.style.transform = 'translate(0, 0)';
+                }
+            });
+        };
+
+        // Add the mouse tracker
+        document.addEventListener('mousemove', mouseMoveHandler);
+
+        // After 10 seconds, stop the effect
+        setTimeout(() => {
+            console.log("CHICA PERK: Buttons have stopped running.");
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            // Reset all buttons to their original positions
+            taskButtons.forEach(btn => {
+                btn.style.transform = 'translate(0, 0)';
+            });
+        }, effectDuration);
     }
 
 });
