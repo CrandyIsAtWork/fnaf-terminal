@@ -545,3 +545,16 @@ body {
     font-size: 1.5em;
     flex-shrink: 0;
 }
+
+/* Add this to your style.css file */
+.marked-indicator {
+    display: none;
+    color: #ff4136;
+    margin-left: 10px;
+}
+.task-item.marked > span {
+    color: #ff4136; /* Makes the whole task name red */
+}
+.task-item.marked .marked-indicator {
+    display: inline; /* Shows the [MARKED] text */
+}
