@@ -73,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPowerOn = false;
     let currentTaskState = {};
     let progressTimeoutId;
+    let markedTasks = {}; // NEW: Tracks which tasks are marked by Ghostface
     const adImageUrls = ['Images/AD2.jpg', 'Images/AD1.jpg'];
 
     // --- Sound Setup ---
@@ -93,14 +94,14 @@ document.addEventListener('DOMContentLoaded', () => {
     sounds.computerLoop.loop = true;
     sounds.ad.loop = true;
 
-    // --- Listen for server events ---
+    // --- Listen for Server Events ---
     socket.on('connect', () => { socket.emit('create-game'); });
     socket.on('game-created', (data) => { roomCodeText.textContent = `CODE: ${data.roomCode}`; });
     socket.on('trigger-event', (data) => { if (data.type === 'ad') { triggerAdPopup(); } });
+    socket.on('update-roster', (data) => { renderRoster(data.animatronics); });
 
     socket.on('sabotage-successful', () => {
         if (isPowerOn && currentTaskState.startTime && !currentTaskState.isPaused) {
-            console.log('Task sabotaged! Resetting...');
             resetCurrentTask();
             sabotageOverlay.classList.remove('hidden');
             sabotageOverlay.classList.add('visible');
@@ -130,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
             monitorScreen.appendChild(newError);
         }
     });
-
+    
     socket.on('receive-message', (data) => {
         if (!isPowerOn) return;
         const { message, sender } = data;
@@ -153,21 +154,37 @@ document.addEventListener('DOMContentLoaded', () => {
     
     socket.on('trigger-sound', (data) => { if (isPowerOn && sounds[data.soundName]) { sounds[data.soundName].play(); } });
 
-    // --- UI Logic and Event Listeners ---
+    // NEW: Listen for Ghostface's ability
+    socket.on('task-marked', (data) => {
+        const taskElement = document.getElementById(data.taskId);
+        if (taskElement) {
+            taskElement.classList.add('marked');
+            markedTasks[data.taskId] = true;
+        }
+    });
+
+    socket.on('task-unmarked', (data) => {
+        const taskElement = document.getElementById(data.taskId);
+        if (taskElement) {
+            taskElement.classList.remove('marked');
+            delete markedTasks[data.taskId];
+        }
+    });
+
+    // --- UI Event Listeners ---
+    rosterToggleButton.addEventListener('click', () => { rosterModal.classList.toggle('hidden'); });
+    rosterModalClose.addEventListener('click', () => { rosterModal.classList.add('hidden'); });
     sabotageOkBtn.addEventListener('click', () => {
         sabotageOverlay.classList.add('hidden');
         sabotageOverlay.classList.remove('visible');
         reenableButtons();
     });
-
     roomCodeToggle.addEventListener('click', () => { roomCodeContainer.classList.toggle('collapsed'); });
-
     adCloseButton.addEventListener('click', () => {
         adPopup.style.display = 'none';
         sounds.ad.pause();
         if (currentTaskState.isPaused) { resumeTask(); }
     });
-
     powerButton.addEventListener('click', () => {
         sounds.click.play();
         if (!hasBooted) { startBootSequence(); } else { togglePower(); }
@@ -186,19 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             startTask(button, 20000, taskName);
         });
-    });
-
-    // --- Roster Logic ---
-    rosterToggleButton.addEventListener('click', () => {
-        rosterModal.classList.toggle('hidden');
-    });
-
-    rosterModalClose.addEventListener('click', () => {
-        rosterModal.classList.add('hidden');
-    });
-
-    socket.on('update-roster', (data) => {
-        renderRoster(data.animatronics);
     });
 
     // --- Core Functions ---
@@ -225,36 +229,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // MODIFIED: This function now checks if a task is marked
     function startTask(clickedButton, duration, taskName) {
+        let taskDuration = duration;
+        const parentTaskId = clickedButton.parentElement.id;
+
+        if (markedTasks[parentTaskId]) {
+            console.log(`Task ${parentTaskId} is marked! Progress will be 50% slower.`);
+            taskDuration *= 2; // Takes twice as long
+        }
+
         taskButtons.forEach(btn => btn.disabled = true);
         clickedButton.textContent = '...';
         progressContainer.classList.remove('hidden');
         progressBar.style.width = '0%';
-        currentTaskState = { startTime: Date.now(), duration: duration, isPaused: false, button: clickedButton, taskName: taskName, timePaused: 0, pauseStart: 0 };
+        currentTaskState = { startTime: Date.now(), duration: taskDuration, isPaused: false, button: clickedButton, taskName: taskName, timePaused: 0, pauseStart: 0 };
         playTaskSound(taskName);
         updateProgress();
     }
 
+    // MODIFIED: This function now reports progress to the server
     function updateProgress() {
-    if (currentTaskState.isPaused || !isPowerOn) return;
+        if (currentTaskState.isPaused || !isPowerOn) return;
+        const timeElapsed = Date.now() - currentTaskState.startTime - currentTaskState.timePaused;
+        let progress = Math.min(100, (timeElapsed / currentTaskState.duration) * 100);
 
-    const timeElapsed = Date.now() - currentTaskState.startTime - currentTaskState.timePaused;
-    let progress = Math.min(100, (timeElapsed / currentTaskState.duration) * 100); // Ensure progress doesn't exceed 100
+        socket.emit('progress-update', { taskId: currentTaskState.button.parentElement.id, progress: progress });
 
-    // --- NEW LINE ---
-    // Emit the current progress to the server so it knows what's happening.
-    socket.emit('progress-update', { taskId: currentTaskState.button.parentElement.id, progress: progress });
-    // --- END NEW LINE ---
-
-    if (progress >= 100) {
-        progressBar.style.width = '100%';
-        finishTask(currentTaskState.button);
-    } else {
-        progressBar.style.width = `${progress}%`;
-        const lagTime = 50 + Math.random() * 200;
-        progressTimeoutId = setTimeout(updateProgress, lagTime);
+        if (progress >= 100) {
+            progressBar.style.width = '100%';
+            finishTask(currentTaskState.button);
+        } else {
+            progressBar.style.width = `${progress}%`;
+            const lagTime = 50 + Math.random() * 200;
+            progressTimeoutId = setTimeout(updateProgress, lagTime);
+        }
     }
-}
 
     function resetCurrentTask() {
         if (!currentTaskState.startTime) return;
@@ -288,11 +298,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function finishTask(clickedButton) {
         clearTimeout(progressTimeoutId);
         stopTaskSound(currentTaskState.taskName);
+        const parentTask = clickedButton.parentElement;
+        // NEW: Unmark the task if it was marked when finished
+        if (parentTask.classList.contains('marked')) {
+            parentTask.classList.remove('marked');
+            delete markedTasks[parentTask.id];
+        }
         currentTaskState = {};
         setTimeout(() => {
             progressContainer.classList.add('hidden');
             progressBar.style.width = '0%';
-            const parentTask = clickedButton.parentElement;
             parentTask.classList.add('completed');
             clickedButton.textContent = 'DONE';
             reenableButtons();
@@ -351,26 +366,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderRoster(animatronics) {
-        rosterList.innerHTML = ''; // Clear the current list
-
+        rosterList.innerHTML = '';
         if (animatronics.length === 0) {
             rosterList.innerHTML = '<li>No animatronics have joined yet.</li>';
             return;
         }
-
         animatronics.forEach(player => {
             const listItem = document.createElement('li');
-
             const avatarImg = document.createElement('img');
             avatarImg.src = `https://crandyisatwork.github.io/fnaf-terminal/${player.avatar}`;
             avatarImg.className = 'roster-avatar';
-
             const playerName = document.createElement('span');
             playerName.className = 'roster-player-name';
             playerName.textContent = player.name;
             playerName.style.color = player.color;
             playerName.style.textShadow = '2px 2px #000';
-
             const perkButton = document.createElement('button');
             perkButton.className = 'roster-perk-info-btn';
             perkButton.textContent = 'i';
@@ -382,7 +392,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Perk information not available for this character.');
                 }
             });
-
             listItem.appendChild(avatarImg);
             listItem.appendChild(playerName);
             listItem.appendChild(perkButton);
