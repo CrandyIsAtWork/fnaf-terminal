@@ -112,14 +112,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isPowerOn || openGlitches > 0) return;
     if (currentTaskState.startTime && !currentTaskState.isPaused) { pauseTask(); }
 
-    const numErrors = Math.floor(Math.random() * 3) + 4;
-    const errorButtons = []; // Keep track of the new buttons
+    // --- MODIFIED BLOCK ---
+    let numErrors = Math.floor(Math.random() * 3) + 4;
+    // Check for Springtrap's perk to triple the errors
+    if (data.withSpringtrapPerk) {
+        numErrors *= 3;
+    }
+    // --- END MODIFIED BLOCK ---
+
+    const errorButtons = []; 
 
     for (let i = 0; i < numErrors; i++) {
         openGlitches++;
         const newError = errorTemplate.cloneNode(true);
         newError.removeAttribute('id');
         newError.classList.remove('hidden');
+        
+        // --- NEW ---
+        // If Springtrap's perk is active, add the 'shaking-error' class
+        if (data.withSpringtrapPerk) {
+            newError.classList.add('shaking-error');
+        }
+        // --- END NEW ---
+
         const top = Math.random() * (monitorScreen.clientHeight - 150);
         const left = Math.random() * (monitorScreen.clientWidth - 270);
         newError.style.top = `${top}px`;
@@ -128,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         newError.querySelector('.error-code').textContent = `ERROR: ${errorCode}`;
         
         const okButton = newError.querySelector('.error-ok-btn');
-        errorButtons.push(okButton); // Add the button to our list
+        errorButtons.push(okButton);
 
         okButton.addEventListener('click', () => {
             newError.remove();
@@ -140,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // After creating the errors, check if Chica's perk is active
     if (data.withChicaPerk) {
-        makeButtonsRun(errorButtons); // Pass the correct buttons to the function
+        makeButtonsRun(errorButtons);
     }
 });
     
