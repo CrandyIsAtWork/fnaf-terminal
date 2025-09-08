@@ -108,29 +108,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    socket.on('glitch-successful', () => {
-        if (!isPowerOn || openGlitches > 0) return;
-        if (currentTaskState.startTime && !currentTaskState.isPaused) { pauseTask(); }
-        const numErrors = Math.floor(Math.random() * 3) + 4;
-        for (let i = 0; i < numErrors; i++) {
-            openGlitches++;
-            const newError = errorTemplate.cloneNode(true);
-            newError.removeAttribute('id');
-            newError.classList.remove('hidden');
-            const top = Math.random() * (monitorScreen.clientHeight - 150);
-            const left = Math.random() * (monitorScreen.clientWidth - 270);
-            newError.style.top = `${top}px`;
-            newError.style.left = `${left}px`;
-            const errorCode = `0x${Math.random().toString(16).substr(2, 8).toUpperCase()}`;
-            newError.querySelector('.error-code').textContent = `ERROR: ${errorCode}`;
-            newError.querySelector('.error-ok-btn').addEventListener('click', () => {
-                newError.remove();
-                openGlitches--;
-                if (openGlitches === 0 && currentTaskState.isPaused) { resumeTask(); }
-            });
-            monitorScreen.appendChild(newError);
-        }
-    });
+    socket.on('glitch-successful', (data) => {
+    if (!isPowerOn || openGlitches > 0) return;
+    if (currentTaskState.startTime && !currentTaskState.isPaused) { pauseTask(); }
+
+    const numErrors = Math.floor(Math.random() * 3) + 4;
+    const errorButtons = []; // Keep track of the new buttons
+
+    for (let i = 0; i < numErrors; i++) {
+        openGlitches++;
+        const newError = errorTemplate.cloneNode(true);
+        newError.removeAttribute('id');
+        newError.classList.remove('hidden');
+        const top = Math.random() * (monitorScreen.clientHeight - 150);
+        const left = Math.random() * (monitorScreen.clientWidth - 270);
+        newError.style.top = `${top}px`;
+        newError.style.left = `${left}px`;
+        const errorCode = `0x${Math.random().toString(16).substr(2, 8).toUpperCase()}`;
+        newError.querySelector('.error-code').textContent = `ERROR: ${errorCode}`;
+        
+        const okButton = newError.querySelector('.error-ok-btn');
+        errorButtons.push(okButton); // Add the button to our list
+
+        okButton.addEventListener('click', () => {
+            newError.remove();
+            openGlitches--;
+            if (openGlitches === 0 && currentTaskState.isPaused) { resumeTask(); }
+        });
+        monitorScreen.appendChild(newError);
+    }
+
+    // After creating the errors, check if Chica's perk is active
+    if (data.withChicaPerk) {
+        makeButtonsRun(errorButtons); // Pass the correct buttons to the function
+    }
+});
     
     socket.on('receive-message', (data) => {
         if (!isPowerOn) return;
@@ -170,10 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
             delete markedTasks[data.taskId];
         }
     });
-
-    socket.on('chica-ability-trigger', () => {
-    activateRunningButtons();
-});
 
     // --- UI Event Listeners ---
     rosterToggleButton.addEventListener('click', () => { rosterModal.classList.toggle('hidden'); });
@@ -403,58 +411,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function activateRunningButtons() {
-        console.log("CHICA PERK: Buttons are now running!");
-        const effectDuration = 10000; // 10 seconds
-        const moveDistance = 60; // How far the buttons can move from their origin
-        const repelRadius = 150; // How close the mouse must be to affect the buttons
+    function makeButtonsRun(buttonsToRun) {
+    console.log("CHICA PERK: Error buttons are now running!");
+    const effectDuration = 10000; // 10 seconds
+    const moveDistance = 70; 
+    const repelRadius = 160;
 
-        // Store the original positions of the buttons
-        const originalPositions = new Map();
-        taskButtons.forEach(btn => {
-            originalPositions.set(btn, { top: btn.offsetTop, left: btn.offsetLeft });
-            btn.style.position = 'relative'; // Ensure we can move them
-        });
+    buttonsToRun.forEach(btn => {
+        btn.style.position = 'relative'; // Ensure we can move them
+        btn.style.transition = 'transform 0.1s ease-out'; // Make movement smoother
+    });
 
-        const mouseMoveHandler = (e) => {
-            const mouseX = e.clientX;
-            const mouseY = e.clientY;
+    const mouseMoveHandler = (e) => {
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
 
-            taskButtons.forEach(btn => {
-                if (btn.disabled) return; // Don't move buttons for completed tasks
+        buttonsToRun.forEach(btn => {
+            const rect = btn.getBoundingClientRect();
+            if (rect.width === 0) return; // Skip buttons that have been removed
 
-                const rect = btn.getBoundingClientRect();
-                const btnCenterX = rect.left + rect.width / 2;
-                const btnCenterY = rect.top + rect.height / 2;
-                
-                const deltaX = btnCenterX - mouseX;
-                const deltaY = btnCenterY - mouseY;
-                
-                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            const btnCenterX = rect.left + rect.width / 2;
+            const btnCenterY = rect.top + rect.height / 2;
+            
+            const deltaX = btnCenterX - mouseX;
+            const deltaY = btnCenterY - mouseY;
+            
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-                if (distance < repelRadius) {
-                    const angle = Math.atan2(deltaY, deltaX);
-                    const moveX = Math.cos(angle) * moveDistance * (1 - distance / repelRadius);
-                    const moveY = Math.sin(angle) * moveDistance * (1 - distance / repelRadius);
-                    btn.style.transform = `translate(${moveX}px, ${moveY}px)`;
-                } else {
-                    btn.style.transform = 'translate(0, 0)';
-                }
-            });
-        };
-
-        // Add the mouse tracker
-        document.addEventListener('mousemove', mouseMoveHandler);
-
-        // After 10 seconds, stop the effect
-        setTimeout(() => {
-            console.log("CHICA PERK: Buttons have stopped running.");
-            document.removeEventListener('mousemove', mouseMoveHandler);
-            // Reset all buttons to their original positions
-            taskButtons.forEach(btn => {
+            if (distance < repelRadius) {
+                const angle = Math.atan2(deltaY, deltaX);
+                const moveX = Math.cos(angle) * moveDistance * (1 - distance / repelRadius);
+                const moveY = Math.sin(angle) * moveDistance * (1 - distance / repelRadius);
+                btn.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            } else {
                 btn.style.transform = 'translate(0, 0)';
-            });
-        }, effectDuration);
-    }
+            }
+        });
+    };
+
+    document.addEventListener('mousemove', mouseMoveHandler);
+
+    setTimeout(() => {
+        console.log("CHICA PERK: Error buttons have stopped running.");
+        document.removeEventListener('mousemove', mouseMoveHandler);
+        buttonsToRun.forEach(btn => {
+            btn.style.transform = 'translate(0, 0)';
+        });
+    }, effectDuration);
+}
 
 });
