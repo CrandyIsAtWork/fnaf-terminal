@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPowerOn = false;
     let currentTaskState = {};
     let progressTimeoutId;
-    let markedTasks = {}; // NEW: Tracks which tasks are marked by Ghostface
+    let markedTasks = {};
     const adImageUrls = ['Images/AD2.jpg', 'Images/AD1.jpg'];
 
     // --- Sound Setup ---
@@ -109,55 +109,48 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     socket.on('glitch-successful', (data) => {
-    if (!isPowerOn || openGlitches > 0) return;
-    if (currentTaskState.startTime && !currentTaskState.isPaused) { pauseTask(); }
+        if (!isPowerOn || openGlitches > 0) return;
+        if (currentTaskState.startTime && !currentTaskState.isPaused) { pauseTask(); }
 
-    // --- MODIFIED BLOCK ---
-    let numErrors = Math.floor(Math.random() * 3) + 4;
-    // Check for Springtrap's perk to triple the errors
-    if (data.withSpringtrapPerk) {
-        numErrors *= 3;
-    }
-    // --- END MODIFIED BLOCK ---
-
-    const errorButtons = []; 
-
-    for (let i = 0; i < numErrors; i++) {
-        openGlitches++;
-        const newError = errorTemplate.cloneNode(true);
-        newError.removeAttribute('id');
-        newError.classList.remove('hidden');
-        
-        // --- NEW ---
-        // If Springtrap's perk is active, add the 'shaking-error' class
+        let numErrors = Math.floor(Math.random() * 3) + 4;
         if (data.withSpringtrapPerk) {
-            newError.classList.add('shaking-error');
+            numErrors *= 3;
         }
-        // --- END NEW ---
 
-        const top = Math.random() * (monitorScreen.clientHeight - 150);
-        const left = Math.random() * (monitorScreen.clientWidth - 270);
-        newError.style.top = `${top}px`;
-        newError.style.left = `${left}px`;
-        const errorCode = `0x${Math.random().toString(16).substr(2, 8).toUpperCase()}`;
-        newError.querySelector('.error-code').textContent = `ERROR: ${errorCode}`;
-        
-        const okButton = newError.querySelector('.error-ok-btn');
-        errorButtons.push(okButton);
+        const errorButtons = []; 
 
-        okButton.addEventListener('click', () => {
-            newError.remove();
-            openGlitches--;
-            if (openGlitches === 0 && currentTaskState.isPaused) { resumeTask(); }
-        });
-        monitorScreen.appendChild(newError);
-    }
+        for (let i = 0; i < numErrors; i++) {
+            openGlitches++;
+            const newError = errorTemplate.cloneNode(true);
+            newError.removeAttribute('id');
+            newError.classList.remove('hidden');
+            
+            if (data.withSpringtrapPerk) {
+                newError.classList.add('shaking-error');
+            }
 
-    // After creating the errors, check if Chica's perk is active
-    if (data.withChicaPerk) {
-        makeButtonsRun(errorButtons);
-    }
-});
+            const top = Math.random() * (monitorScreen.clientHeight - 150);
+            const left = Math.random() * (monitorScreen.clientWidth - 270);
+            newError.style.top = `${top}px`;
+            newError.style.left = `${left}px`;
+            const errorCode = `0x${Math.random().toString(16).substr(2, 8).toUpperCase()}`;
+            newError.querySelector('.error-code').textContent = `ERROR: ${errorCode}`;
+            
+            const okButton = newError.querySelector('.error-ok-btn');
+            errorButtons.push(okButton);
+
+            okButton.addEventListener('click', () => {
+                newError.remove();
+                openGlitches--;
+                if (openGlitches === 0 && currentTaskState.isPaused) { resumeTask(); }
+            });
+            monitorScreen.appendChild(newError);
+        }
+
+        if (data.withChicaPerk) {
+            makeButtonsRun(errorButtons);
+        }
+    });
     
     socket.on('receive-message', (data) => {
         if (!isPowerOn) return;
@@ -181,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     socket.on('trigger-sound', (data) => { if (isPowerOn && sounds[data.soundName]) { sounds[data.soundName].play(); } });
 
-    // NEW: Listen for Ghostface's ability
+    // Ghostface
     socket.on('task-marked', (data) => {
         const taskElement = document.getElementById(data.taskId);
         if (taskElement) {
@@ -196,6 +189,20 @@ document.addEventListener('DOMContentLoaded', () => {
             taskElement.classList.remove('marked');
             delete markedTasks[data.taskId];
         }
+    });
+
+    // Michael Myers
+    socket.on('myers-stalk-start', () => {
+        console.log("Michael Myers has started stalking...");
+        const stalkNotice = document.createElement('div');
+        stalkNotice.textContent = "You feel like you're being watched...";
+        stalkNotice.className = "stalk-notice";
+        document.body.appendChild(stalkNotice);
+        setTimeout(() => stalkNotice.remove(), 5000);
+    });
+
+    socket.on('myers-stalk-stop', () => {
+        console.log("Michael Myers has stopped stalking.");
     });
 
     // --- UI Event Listeners ---
@@ -256,14 +263,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // MODIFIED: This function now checks if a task is marked
     function startTask(clickedButton, duration, taskName) {
         let taskDuration = duration;
         const parentTaskId = clickedButton.parentElement.id;
 
         if (markedTasks[parentTaskId]) {
             console.log(`Task ${parentTaskId} is marked! Progress will be 50% slower.`);
-            taskDuration *= 2; // Takes twice as long
+            taskDuration *= 2;
         }
 
         taskButtons.forEach(btn => btn.disabled = true);
@@ -275,7 +281,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateProgress();
     }
 
-    // MODIFIED: This function now reports progress to the server
     function updateProgress() {
         if (currentTaskState.isPaused || !isPowerOn) return;
         const timeElapsed = Date.now() - currentTaskState.startTime - currentTaskState.timePaused;
@@ -326,7 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(progressTimeoutId);
         stopTaskSound(currentTaskState.taskName);
         const parentTask = clickedButton.parentElement;
-        // NEW: Unmark the task if it was marked when finished
         if (parentTask.classList.contains('marked')) {
             parentTask.classList.remove('marked');
             delete markedTasks[parentTask.id];
@@ -366,6 +370,9 @@ document.addEventListener('DOMContentLoaded', () => {
             sounds.computerLoop.pause();
             sounds.powerDown.play();
             if (currentTaskState.startTime) { pauseTask(); }
+
+            // NEW: tell animatronics Myers loses vision
+            socket.emit('guard-powered-off');
         }
     }
 
@@ -427,52 +434,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function makeButtonsRun(buttonsToRun) {
-    console.log("CHICA PERK: Error buttons are now running!");
-    const effectDuration = 10000; // 10 seconds
-    const moveDistance = 70; 
-    const repelRadius = 160;
-
-    buttonsToRun.forEach(btn => {
-        btn.style.position = 'relative'; // Ensure we can move them
-        btn.style.transition = 'transform 0.1s ease-out'; // Make movement smoother
-    });
-
-    const mouseMoveHandler = (e) => {
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
+        console.log("CHICA PERK: Error buttons are now running!");
+        const effectDuration = 10000;
+        const moveDistance = 70; 
+        const repelRadius = 160;
 
         buttonsToRun.forEach(btn => {
-            const rect = btn.getBoundingClientRect();
-            if (rect.width === 0) return; // Skip buttons that have been removed
+            btn.style.position = 'relative';
+            btn.style.transition = 'transform 0.1s ease-out';
+        });
 
-            const btnCenterX = rect.left + rect.width / 2;
-            const btnCenterY = rect.top + rect.height / 2;
-            
-            const deltaX = btnCenterX - mouseX;
-            const deltaY = btnCenterY - mouseY;
-            
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const mouseMoveHandler = (e) => {
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
 
-            if (distance < repelRadius) {
-                const angle = Math.atan2(deltaY, deltaX);
-                const moveX = Math.cos(angle) * moveDistance * (1 - distance / repelRadius);
-                const moveY = Math.sin(angle) * moveDistance * (1 - distance / repelRadius);
-                btn.style.transform = `translate(${moveX}px, ${moveY}px)`;
-            } else {
+            buttonsToRun.forEach(btn => {
+                const rect = btn.getBoundingClientRect();
+                if (rect.width === 0) return;
+
+                const btnCenterX = rect.left + rect.width / 2;
+                const btnCenterY = rect.top + rect.height / 2;
+                
+                const deltaX = btnCenterX - mouseX;
+                const deltaY = btnCenterY - mouseY;
+                
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                if (distance < repelRadius) {
+                    const angle = Math.atan2(deltaY, deltaX);
+                    const moveX = Math.cos(angle) * moveDistance * (1 - distance / repelRadius);
+                    const moveY = Math.sin(angle) * moveDistance * (1 - distance / repelRadius);
+                    btn.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                } else {
+                    btn.style.transform = 'translate(0, 0)';
+                }
+            });
+        };
+
+        document.addEventListener('mousemove', mouseMoveHandler);
+
+        setTimeout(() => {
+            console.log("CHICA PERK: Error buttons have stopped running.");
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            buttonsToRun.forEach(btn => {
                 btn.style.transform = 'translate(0, 0)';
-            }
-        });
-    };
-
-    document.addEventListener('mousemove', mouseMoveHandler);
-
-    setTimeout(() => {
-        console.log("CHICA PERK: Error buttons have stopped running.");
-        document.removeEventListener('mousemove', mouseMoveHandler);
-        buttonsToRun.forEach(btn => {
-            btn.style.transform = 'translate(0, 0)';
-        });
-    }, effectDuration);
-}
-
+            });
+        }, effectDuration);
+    }
 });
