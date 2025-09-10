@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FNAF 6 Task System</title>
-    <link rel="icon" type="image/png" href=https://freesvg.org/img/utilities-terminal.png">
+    <link rel="icon" type="image/png" href="https://freesvg.org/img/utilities-terminal.png">
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -12,14 +12,13 @@
 
     <button id="roster-toggle-button">i</button>
 
-<div id="roster-modal" class="hidden">
-    <div id="roster-modal-content">
-        <button id="roster-modal-close">X</button>
-        <h2>Animatronic Roster</h2>
-        <ul id="roster-list">
-            </ul>
+    <div id="roster-modal" class="hidden">
+        <div id="roster-modal-content">
+            <button id="roster-modal-close">X</button>
+            <h2>Animatronic Roster</h2>
+            <ul id="roster-list"></ul>
+        </div>
     </div>
-</div>
 
     <div id="room-code-container">
         <button id="room-code-toggle">▼</button>
@@ -29,7 +28,6 @@
     <ul id="message-log" class="hidden"></ul>
 
     <div class="monitor-screen">
-        
         <button id="power-button">
             <svg viewBox="0 0 64 64">
                 <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="6" fill="none"/>
@@ -89,12 +87,12 @@
         </div>
     </div>
 
-<div id="sabotage-overlay" class="hidden">
-    <div id="sabotage-popup">
-        <h1>GET OUT</h1>
-        <button id="sabotage-ok-btn">OK</button>
+    <div id="sabotage-overlay" class="hidden">
+        <div id="sabotage-popup">
+            <h1>GET OUT</h1>
+            <button id="sabotage-ok-btn">OK</button>
+        </div>
     </div>
-</div>
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="script.js"></script>
