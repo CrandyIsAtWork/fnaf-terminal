@@ -1,3 +1,4 @@
+// script.js (Guard client) - full file
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io('https://8b503b84-132c-4149-bdb3-8bef57ec4fd8-00-2ga0ewjtdd2yk.worf.replit.dev');
 
@@ -73,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPowerOn = false;
     let currentTaskState = {};
     let progressTimeoutId;
-    let markedTasks = {};
+    let markedTasks = {}; // NEW: Tracks which tasks are marked by Ghostface
     const adImageUrls = ['Images/AD2.jpg', 'Images/AD1.jpg'];
 
     // --- Sound Setup ---
@@ -174,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     socket.on('trigger-sound', (data) => { if (isPowerOn && sounds[data.soundName]) { sounds[data.soundName].play(); } });
 
-    // Ghostface
+    // NEW: Listen for Ghostface's ability
     socket.on('task-marked', (data) => {
         const taskElement = document.getElementById(data.taskId);
         if (taskElement) {
@@ -191,19 +192,102 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Michael Myers
-    socket.on('myers-stalk-start', () => {
-        console.log("Michael Myers has started stalking...");
-        const stalkNotice = document.createElement('div');
-        stalkNotice.textContent = "You feel like you're being watched...";
-        stalkNotice.className = "stalk-notice";
-        document.body.appendChild(stalkNotice);
-        setTimeout(() => stalkNotice.remove(), 5000);
+    // --- Michael Myers STALK logic (Guard) ---
+    let myersPc = null;
+    let myersLocalStream = null;
+    let currentMyersWatcherId = null;
+
+    // Server tells guard "Myers started a stalk (watcherId + duration)"
+    socket.on('myers-watch-start', async (data) => {
+        if (!isPowerOn) return; // if terminal is already off ignore
+        console.log("Received myers-watch-start", data);
+
+        // Immediately reset guard's current task (per your requirement)
+        if (currentTaskState.startTime) {
+            resetCurrentTask();
+        }
+
+        currentMyersWatcherId = data.watcherId;
+
+        // Setup RTCPeerConnection and stream webcam to watcher
+        try {
+            myersPc = new RTCPeerConnection();
+
+            myersPc.onicecandidate = (event) => {
+                if (event.candidate && currentMyersWatcherId) {
+                    socket.emit('myers-ice-candidate', { toId: currentMyersWatcherId, candidate: event.candidate });
+                }
+            };
+
+            // optional: observe connectionstatechange for debug/cleanup
+            myersPc.onconnectionstatechange = () => {
+                if (!myersPc) return;
+                if (myersPc.connectionState === 'disconnected' || myersPc.connectionState === 'failed' || myersPc.connectionState === 'closed') {
+                    // cleanup if needed
+                }
+            };
+
+            // Acquire webcam (if available). If user denies, the stalk still happened but no stream will be sent.
+            try {
+                myersLocalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                myersLocalStream.getTracks().forEach(track => myersPc.addTrack(track, myersLocalStream));
+            } catch (err) {
+                console.warn("Guard webcam unavailable or permission denied:", err);
+                // still create offer (without tracks) so the watcher still receives an answer and an event flow
+            }
+
+            const offer = await myersPc.createOffer();
+            await myersPc.setLocalDescription(offer);
+
+            // send offer to server (server will forward to the watcher using the provided watcherId)
+            socket.emit('myers-offer', { watcherId: currentMyersWatcherId, offer: offer });
+
+        } catch (err) {
+            console.error('Error during Myers stalk setup:', err);
+        }
     });
 
-    socket.on('myers-stalk-stop', () => {
-        console.log("Michael Myers has stopped stalking.");
+    socket.on('myers-answer', async (data) => {
+        // data: { answer, watcherId }
+        try {
+            if (myersPc && data && data.answer) {
+                await myersPc.setRemoteDescription(new RTCSessionDescription(data.answer));
+            }
+        } catch (err) {
+            console.error('Error applying Myers answer:', err);
+        }
     });
+
+    socket.on('myers-ice-candidate', async (data) => {
+        // data: { candidate, fromId }
+        try {
+            if (myersPc && data && data.candidate) {
+                await myersPc.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        } catch (err) {
+            console.warn('Error adding remote ICE candidate (guard):', err);
+        }
+    });
+
+    // When server says the stalk stopped or it was cancelled, cleanup
+    socket.on('myers-watch-stop', () => {
+        cleanupMyersConnection();
+    });
+    socket.on('myers-cancelled', () => {
+        cleanupMyersConnection();
+    });
+
+    function cleanupMyersConnection() {
+        if (myersLocalStream) {
+            myersLocalStream.getTracks().forEach(t => t.stop());
+            myersLocalStream = null;
+        }
+        if (myersPc) {
+            try { myersPc.close(); } catch {}
+            myersPc = null;
+        }
+        currentMyersWatcherId = null;
+    }
 
     // --- UI Event Listeners ---
     rosterToggleButton.addEventListener('click', () => { rosterModal.classList.toggle('hidden'); });
@@ -219,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sounds.ad.pause();
         if (currentTaskState.isPaused) { resumeTask(); }
     });
+
     powerButton.addEventListener('click', () => {
         sounds.click.play();
         if (!hasBooted) { startBootSequence(); } else { togglePower(); }
@@ -269,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (markedTasks[parentTaskId]) {
             console.log(`Task ${parentTaskId} is marked! Progress will be 50% slower.`);
-            taskDuration *= 2;
+            taskDuration *= 2; // Takes twice as long
         }
 
         taskButtons.forEach(btn => btn.disabled = true);
@@ -304,7 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(progressTimeoutId);
         progressContainer.classList.add('hidden');
         progressBar.style.width = '0%';
-        currentTaskState.button.textContent = 'BEGIN';
+        // return button to begin so guard can start other tasks manually
+        if (currentTaskState.button) currentTaskState.button.textContent = 'BEGIN';
         taskButtons.forEach(btn => btn.disabled = true);
         currentTaskState = {};
     }
@@ -331,6 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(progressTimeoutId);
         stopTaskSound(currentTaskState.taskName);
         const parentTask = clickedButton.parentElement;
+        // Unmark the task if it was marked when finished
         if (parentTask.classList.contains('marked')) {
             parentTask.classList.remove('marked');
             delete markedTasks[parentTask.id];
@@ -365,14 +452,17 @@ document.addEventListener('DOMContentLoaded', () => {
             taskTerminal.classList.remove('d-none');
             sounds.computerLoop.play();
             if (currentTaskState.isPaused) { resumeTask(); }
+            socket.emit('terminal-on'); // notify server if you want
         } else {
             taskTerminal.classList.add('d-none');
             sounds.computerLoop.pause();
             sounds.powerDown.play();
             if (currentTaskState.startTime) { pauseTask(); }
 
-            // NEW: tell animatronics Myers loses vision
-            socket.emit('guard-powered-off');
+            // Tell the server the guard turned off terminal: cancels Myers stalk
+            socket.emit('terminal-off');
+            // Also local cleanup
+            cleanupMyersConnection();
         }
     }
 
@@ -434,51 +524,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function makeButtonsRun(buttonsToRun) {
-        console.log("CHICA PERK: Error buttons are now running!");
-        const effectDuration = 10000;
-        const moveDistance = 70; 
-        const repelRadius = 160;
+    console.log("CHICA PERK: Error buttons are now running!");
+    const effectDuration = 10000; // 10 seconds
+    const moveDistance = 70; 
+    const repelRadius = 160;
+
+    buttonsToRun.forEach(btn => {
+        btn.style.position = 'relative'; // Ensure we can move them
+        btn.style.transition = 'transform 0.1s ease-out'; // Make movement smoother
+    });
+
+    const mouseMoveHandler = (e) => {
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
 
         buttonsToRun.forEach(btn => {
-            btn.style.position = 'relative';
-            btn.style.transition = 'transform 0.1s ease-out';
-        });
+            const rect = btn.getBoundingClientRect();
+            if (rect.width === 0) return; // Skip buttons that have been removed
 
-        const mouseMoveHandler = (e) => {
-            const mouseX = e.clientX;
-            const mouseY = e.clientY;
+            const btnCenterX = rect.left + rect.width / 2;
+            const btnCenterY = rect.top + rect.height / 2;
+            
+            const deltaX = btnCenterX - mouseX;
+            const deltaY = btnCenterY - mouseY;
+            
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-            buttonsToRun.forEach(btn => {
-                const rect = btn.getBoundingClientRect();
-                if (rect.width === 0) return;
-
-                const btnCenterX = rect.left + rect.width / 2;
-                const btnCenterY = rect.top + rect.height / 2;
-                
-                const deltaX = btnCenterX - mouseX;
-                const deltaY = btnCenterY - mouseY;
-                
-                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-                if (distance < repelRadius) {
-                    const angle = Math.atan2(deltaY, deltaX);
-                    const moveX = Math.cos(angle) * moveDistance * (1 - distance / repelRadius);
-                    const moveY = Math.sin(angle) * moveDistance * (1 - distance / repelRadius);
-                    btn.style.transform = `translate(${moveX}px, ${moveY}px)`;
-                } else {
-                    btn.style.transform = 'translate(0, 0)';
-                }
-            });
-        };
-
-        document.addEventListener('mousemove', mouseMoveHandler);
-
-        setTimeout(() => {
-            console.log("CHICA PERK: Error buttons have stopped running.");
-            document.removeEventListener('mousemove', mouseMoveHandler);
-            buttonsToRun.forEach(btn => {
+            if (distance < repelRadius) {
+                const angle = Math.atan2(deltaY, deltaX);
+                const moveX = Math.cos(angle) * moveDistance * (1 - distance / repelRadius);
+                const moveY = Math.sin(angle) * moveDistance * (1 - distance / repelRadius);
+                btn.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            } else {
                 btn.style.transform = 'translate(0, 0)';
-            });
-        }, effectDuration);
-    }
+            }
+        });
+    };
+
+    document.addEventListener('mousemove', mouseMoveHandler);
+
+    setTimeout(() => {
+        console.log("CHICA PERK: Error buttons have stopped running.");
+        document.removeEventListener('mousemove', mouseMoveHandler);
+        buttonsToRun.forEach(btn => {
+            btn.style.transform = 'translate(0, 0)';
+        });
+    }, effectDuration);
+}
+
 });
