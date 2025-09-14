@@ -299,10 +299,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     roomCodeToggle.addEventListener('click', () => { roomCodeContainer.classList.toggle('collapsed'); });
     adCloseButton.addEventListener('click', () => {
-        adPopup.style.display = 'none';
-        sounds.ad.pause();
-        if (currentTaskState.isPaused) { resumeTask(); }
-    });
+    adPopup.style.display = 'none';
+    sounds.ad.pause();
+
+    // Only resume the task if *no glitch popups* are still open
+    if (openGlitches === 0 && currentTaskState.isPaused) {
+        resumeTask();
+    }
+});
+
 
     powerButton.addEventListener('click', () => {
         sounds.click.play();
