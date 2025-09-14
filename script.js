@@ -372,9 +372,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateProgress() {
-        if (currentTaskState.isPaused || !isPowerOn) return;
-        const timeElapsed = Date.now() - currentTaskState.startTime - currentTaskState.timePaused;
-        let progress = Math.min(100, (timeElapsed / currentTaskState.duration) * 100);
+    // Stop updating if task is paused, power is off,
+    // OR glitch popups are open, OR an ad is visible
+    if (
+        currentTaskState.isPaused ||
+        !isPowerOn ||
+        openGlitches > 0 ||
+        adPopup.style.display === 'flex'
+    ) {
+        return;
+    }
+
+    const timeElapsed = Date.now() - currentTaskState.startTime - currentTaskState.timePaused;
+    let progress = Math.min(100, (timeElapsed / currentTaskState.duration) * 100);
 
         socket.emit('progress-update', { taskId: currentTaskState.button.parentElement.id, progress: progress });
 
