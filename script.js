@@ -45,6 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Element Selectors ---
+    const doorControls = document.getElementById("door-controls");
+    const leftDoorBtn = document.getElementById("left-door-btn");
+    const rightDoorBtn = document.getElementById("right-door-btn");
     const rosterToggleButton = document.getElementById('roster-toggle-button');
     const rosterModal = document.getElementById('roster-modal');
     const rosterModalClose = document.getElementById('roster-modal-close');
@@ -172,6 +175,20 @@ document.addEventListener('DOMContentLoaded', () => {
         messageLog.appendChild(messageItem);
         messageLog.scrollTop = messageLog.scrollHeight;
     });
+
+    socket.on("door-state", (data) => {
+  doorControls.classList.remove("hidden");
+
+  if (data.side === "left") {
+    leftDoorBtn.style.display = data.hooked ? "inline-block" : "none";
+    leftDoorBtn.textContent = data.closed ? "Open Left Door" : "Close Left Door";
+  }
+  if (data.side === "right") {
+    rightDoorBtn.style.display = data.hooked ? "inline-block" : "none";
+    rightDoorBtn.textContent = data.closed ? "Open Right Door" : "Close Right Door";
+  }
+});
+
     
     socket.on('trigger-sound', (data) => { if (isPowerOn && sounds[data.soundName]) { sounds[data.soundName].play(); } });
 
@@ -328,6 +345,13 @@ document.addEventListener('DOMContentLoaded', () => {
             startTask(button, 20000, taskName);
         });
     });
+    
+    leftDoorBtn.addEventListener("click", () => {
+  socket.emit("toggle-door", { side: "left" });
+});
+rightDoorBtn.addEventListener("click", () => {
+  socket.emit("toggle-door", { side: "right" });
+});
 
     // --- Core Functions ---
     function triggerAdPopup() {
