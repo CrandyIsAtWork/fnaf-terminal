@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Guard Doors</title>
+  <style>
+    body { background:#111; color:white; display:flex; justify-content:space-around; align-items:center; height:100vh; margin:0; font-family:sans-serif; }
+    .door-btn { width:200px; height:200px; font-size:24px; border:none; border-radius:10px; cursor:pointer; display:none; }
+    .open { background:#2ecc71; }
+    .closed { background:#e74c3c; }
+  </style>
+</head>
+<body>
+  <button id="left-door" class="door-btn open">Left Door (Open)</button>
+  <button id="right-door" class="door-btn open">Right Door (Open)</button>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    const leftDoorBtn = document.getElementById('left-door');
+    const rightDoorBtn = document.getElementById('right-door');
+
+    leftDoorBtn.addEventListener('click', () => socket.emit('toggle-door', { side: 'left' }));
+    rightDoorBtn.addEventListener('click', () => socket.emit('toggle-door', { side: 'right' }));
+
+    socket.on('door-state', (data) => {
+      const btn = data.side === 'left' ? leftDoorBtn : rightDoorBtn;
+      btn.style.display = data.hooked ? 'block' : 'none';
+      btn.textContent = `${data.side.toUpperCase()} Door (${data.closed ? 'Closed' : 'Open'})`;
+      btn.className = `door-btn ${data.closed ? 'closed' : 'open'}`;
+    });
+
+    // Request initial states
+    socket.emit('get-door-states');
+  </script>
+</body>
+</html>
